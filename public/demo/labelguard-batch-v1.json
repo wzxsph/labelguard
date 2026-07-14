@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "labelguard.demo.v1",
+  "batch": {
+    "id": "BATCH-LG-PUBLIC-001",
+    "name": "Urban Junction Multi-Sensor QA Demo",
+    "source": "LabelGuard public synthetic fixture",
+    "dataNature": "synthetic",
+    "license": "CC0-1.0",
+    "publicRelease": true,
+    "task": "multi_sensor_3d_detection",
+    "sensorProfile": "camera_lidar_demo_v1",
+    "frameSize": {
+      "width": 1280,
+      "height": 720
+    },
+    "baseLabelVersion": "labels-demo-v1.2.0",
+    "candidateLabelVersion": "labels-demo-v1.3.0-rc1",
+    "createdAt": "2026-07-15T08:30:00.000Z",
+    "annotationSchema": "openlabel-style-demo-v1",
+    "digestMethod": "sha256-canonical-json-without-batch.contentDigest",
+    "contentDigest": "sha256:91da0a9c124df9784bff520348ec1364ac7337bdaf207ddffb62eba8d6e92640",
+    "notice": "公开合成演示数据，不代表道路实采 GT 或生产模型性能。"
+  },
+  "frames": [
+    {
+      "id": "FRAME-000184",
+      "timestampMs": 0,
+      "image": "/demo/frame-000184.svg",
+      "egoSpeedMps": 7.4,
+      "targets": [
+        {
+          "id": "TG-P07-184",
+          "trackId": "TRACK-P07",
+          "class": "pedestrian",
+          "attributes": ["moving", "partially_occluded"],
+          "box2d": {"x": 765, "y": 282, "width": 44, "height": 118},
+          "projection2d": {"x": 768, "y": 286, "width": 41, "height": 111},
+          "box3d": {"length": 0.7, "width": 0.6, "height": 1.72, "yaw": 1.48},
+          "lidarPoints": 18,
+          "velocityMps": 1.2,
+          "modelCandidate": {"class": "pedestrian", "score": 0.91, "box2d": {"x": 768, "y": 285, "width": 42, "height": 112}}
+        },
+        {
+          "id": "TG-V12-184",
+          "trackId": "TRACK-V12",
+          "class": "car",
+          "attributes": ["moving"],
+          "box2d": {"x": 410, "y": 318, "width": 228, "height": 112},
+          "projection2d": {"x": 418, "y": 322, "width": 215, "height": 104},
+          "box3d": {"length": 4.38, "width": 1.82, "height": 1.56, "yaw": 0.03},
+          "lidarPoints": 142,
+          "velocityMps": 6.2,
+          "modelCandidate": {"class": "car", "score": 0.96, "box2d": {"x": 416, "y": 321, "width": 216, "height": 105}}
+        }
+      ]
+    },
+    {
+      "id": "FRAME-000185",
+      "timestampMs": 100,
+      "image": "/demo/frame-000185.svg",
+      "egoSpeedMps": 7.1,
+      "targets": [
+        {
+          "id": "TG-P07-185",
+          "trackId": "TRACK-P07",
+          "class": "pedestrian",
+          "attributes": ["moving", "partially_occluded"],
+          "box2d": {"x": 808, "y": 276, "width": 45, "height": 120},
+          "projection2d": {"x": 811, "y": 280, "width": 42, "height": 112},
+          "box3d": {"length": 0.71, "width": 0.61, "height": 1.72, "yaw": 1.52},
+          "lidarPoints": 17,
+          "velocityMps": 11.8,
+          "modelCandidate": {"class": "pedestrian", "score": 0.89, "box2d": {"x": 810, "y": 279, "width": 43, "height": 114}}
+        },
+        {
+          "id": "TG-V12-185",
+          "trackId": "TRACK-V12",
+          "class": "car",
+          "attributes": ["moving"],
+          "box2d": {"x": 448, "y": 315, "width": 230, "height": 113},
+          "projection2d": {"x": 495, "y": 332, "width": 150, "height": 72},
+          "box3d": {"length": 4.41, "width": 1.83, "height": 1.57, "yaw": 0.05},
+          "lidarPoints": 131,
+          "velocityMps": 6.4,
+          "modelCandidate": {"class": "car", "score": 0.93, "box2d": {"x": 493, "y": 330, "width": 154, "height": 76}}
+        },
+        {
+          "id": "TG-C03-185",
+          "trackId": "TRACK-C03",
+          "class": "cyclist",
+          "attributes": ["moving"],
+          "box2d": {"x": 1008, "y": 298, "width": 68, "height": 128},
+          "projection2d": {"x": 1012, "y": 303, "width": 62, "height": 119},
+          "box3d": {"length": 1.78, "width": 0.64, "height": 1.67, "yaw": -1.36},
+          "lidarPoints": 2,
+          "velocityMps": 2.4,
+          "modelCandidate": {"class": "bicycle", "score": 0.62, "box2d": {"x": 1010, "y": 302, "width": 63, "height": 120}}
+        }
+      ]
+    },
+    {
+      "id": "FRAME-000186",
+      "timestampMs": 200,
+      "image": "/demo/frame-000186.svg",
+      "egoSpeedMps": 6.8,
+      "targets": [
+        {
+          "id": "TG-V12-186",
+          "trackId": "TRACK-V12",
+          "class": "car",
+          "attributes": ["moving"],
+          "box2d": {"x": 472, "y": 312, "width": 232, "height": 115},
+          "projection2d": {"x": 478, "y": 316, "width": 220, "height": 106},
+          "box3d": {"length": 4.4, "width": 1.83, "height": 1.57, "yaw": 0.05},
+          "lidarPoints": 127,
+          "velocityMps": 6.5,
+          "modelCandidate": {"class": "car", "score": 0.95, "box2d": {"x": 476, "y": 315, "width": 221, "height": 108}}
+        },
+        {
+          "id": "TG-C03-186",
+          "trackId": "TRACK-C03",
+          "class": "cyclist",
+          "attributes": ["moving", "truncated"],
+          "box2d": {"x": -14, "y": 294, "width": 86, "height": 138},
+          "projection2d": {"x": 0, "y": 300, "width": 66, "height": 126},
+          "box3d": {"length": 1.77, "width": 0.63, "height": 1.67, "yaw": -1.33},
+          "lidarPoints": 7,
+          "velocityMps": 2.6,
+          "modelCandidate": null
+        },
+        {
+          "id": "TG-CONE-186",
+          "trackId": "TRACK-CONE-01",
+          "class": "traffic_cone",
+          "attributes": ["static"],
+          "box2d": {"x": 930, "y": 372, "width": 30, "height": 47},
+          "projection2d": {"x": 933, "y": 374, "width": 26, "height": 42},
+          "box3d": {"length": 0.36, "width": 0.36, "height": 0.72, "yaw": 0},
+          "lidarPoints": 1,
+          "velocityMps": 0,
+          "modelCandidate": {"class": "traffic_cone", "score": 0.72, "box2d": {"x": 932, "y": 373, "width": 27, "height": 44}}
+        }
+      ]
+    }
+  ]
+}

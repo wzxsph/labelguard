@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+.vite/
+coverage/
+AGENT.md
+AGENTS.md
+prd/
+internal/
+discuss/
+*.log
