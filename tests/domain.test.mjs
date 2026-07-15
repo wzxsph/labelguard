@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
-  createDecision,
-  createReleaseManifest,
-  evaluateBatch,
+  createDataSupplyTask,
+  computeDatasetCandidateDigest,
+  createLabelQualityManifest,
+  createQualificationSignOff,
+  createRecheckRecord,
+  createRemediationTask,
+  createReviewDecision,
+  createSceneQLReceipt,
+  evaluateWorkOrder,
+  preflightDataSupplyTask,
+  preflightWorkOrder,
   stableHash,
 } from "../src/domain.mjs";
 
@@ -15,72 +24,176 @@ const projectRoot = path.resolve(currentDir, "..");
 const fixturePath = path.join(projectRoot, "public", "demo", "labelguard-batch-v1.json");
 const payload = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 
-test("public demo batch produces deterministic target-level evidence", () => {
-  const first = evaluateBatch(payload);
-  const second = evaluateBatch(payload);
+function resolveAllBlockingClusters(evaluation) {
+  const decisions = {};
+  const remediations = {};
+  const rechecks = {};
+  for (const cluster of evaluation.issueClusters.filter((item) => item.blocking)) {
+    const decision = createReviewDecision(
+      cluster,
+      "confirmed_issue",
+      "同簇目标重复违反当前质量规范，需要合并返修并复检",
+      evaluation,
+    );
+    const remediation = createRemediationTask(cluster, decision, evaluation);
+    const recheck = createRecheckRecord(
+      remediation,
+      payload.demoRecheck.snapshotDigest,
+      "passed",
+      { demoSyntheticRecheck: true },
+    );
+    decisions[cluster.id] = decision;
+    remediations[cluster.id] = remediation;
+    rechecks[cluster.id] = recheck;
+  }
+  return { decisions, remediations, rechecks };
+}
 
-  assert.equal(first.summary.frameCount, 3);
-  assert.equal(first.summary.targetCount, 8);
-  assert.equal(first.summary.reviewCount, 5);
-  assert.equal(first.summary.autoPassCount, 3);
-  assert.equal(first.summary.evidenceCount, 7);
+test("work order preflight and systematic issue clustering are deterministic", () => {
+  const first = evaluateWorkOrder(payload);
+  const second = evaluateWorkOrder(payload);
+
+  assert.equal(first.preflight.status, "READY");
   assert.deepEqual(first, second);
+  assert.deepEqual(first.summary, {
+    frameCount: 3,
+    targetCount: 9,
+    reviewCount: 5,
+    autoPassCount: 4,
+    evidenceCount: 5,
+    clusterCount: 3,
+    blockingClusterCount: 2,
+    systematicClusterCount: 2,
+  });
+  assert.equal(first.issueClusters.filter((item) => item.systemic).every((item) => item.targetIds.length === 2), true);
+  assert.equal(first.issueClusters.find((item) => item.rule === "MODEL_CLASS_AGREEMENT").blocking, false);
 });
 
-test("temporal, projection, model disagreement and geometry risks remain distinct", () => {
-  const evaluation = evaluateBatch(payload);
-  const byId = Object.fromEntries(evaluation.targets.map((target) => [target.id, target]));
+test("missing work-order fields need clarification and snapshot changes invalidate reuse", () => {
+  const missing = structuredClone(payload.labelQAWorkOrder);
+  delete missing.intendedUse;
+  assert.equal(preflightWorkOrder(missing, payload).status, "NEEDS_CLARIFICATION");
+  assert.deepEqual(preflightWorkOrder(missing, payload).missingFields, ["intendedUse"]);
 
-  assert.ok(byId["TG-P07-185"].evidence.some((item) => item.rule === "TRACK_ACCELERATION_CONTINUITY"));
-  assert.ok(byId["TG-V12-185"].evidence.some((item) => item.rule === "PROJECTION_ALIGNMENT"));
-  assert.ok(byId["TG-C03-185"].evidence.some((item) => item.factType === "model_disagreement"));
-  assert.ok(byId["TG-C03-186"].evidence.some((item) => item.rule === "BOX_IN_FRAME"));
-  assert.equal(byId["TG-V12-184"].reviewRequired, false);
+  const stale = structuredClone(payload.labelQAWorkOrder);
+  stale.snapshotDigest = "sha256:" + "0".repeat(64);
+  const staleResult = preflightWorkOrder(stale, payload);
+  assert.equal(staleResult.status, "SNAPSHOT_CHANGED");
+  assert.equal(staleResult.reusableDecisions, false);
+
+  const tamperedPayload = structuredClone(payload);
+  tamperedPayload.frames[0].targets[0].candidate2d.x += 1;
+  const tamperedResult = preflightWorkOrder(tamperedPayload.labelQAWorkOrder, tamperedPayload);
+  assert.equal(tamperedResult.status, "SNAPSHOT_CHANGED");
+  assert.deepEqual(tamperedResult.issues, ["DATASET_CONTENT_DIGEST_INVALID"]);
+
+  const unsupported = structuredClone(payload.labelQAWorkOrder);
+  unsupported.intendedUse = "training";
+  assert.equal(preflightWorkOrder(unsupported, payload).issues[0], "QUALITY_PROFILE_DOES_NOT_SUPPORT_INTENDED_USE");
 });
 
-test("release remains blocked until every required target has a human decision", () => {
-  const evaluation = evaluateBatch(payload);
-  const empty = createReleaseManifest(evaluation, {});
-
-  assert.equal(empty.status, "BLOCKED");
-  assert.equal(empty.unresolved.length, 5);
-  assert.equal(empty.blockers.length, 0);
-});
-
-test("all pass decisions produce a ready and reproducible release manifest", () => {
-  const evaluation = evaluateBatch(payload);
-  const decisions = {};
-  for (const target of evaluation.targets.filter((item) => item.reviewRequired)) {
-    decisions[target.id] = createDecision(target, "pass", "多传感器关联与规范均已人工确认");
+test("candidate fields do not require demo GT and missing model candidates do not block", () => {
+  const productionLike = structuredClone(payload);
+  for (const frame of productionLike.frames) {
+    for (const target of frame.targets) delete target.demoReferenceAnnotation;
   }
+  productionLike.frames[0].targets[0].modelCandidate = null;
+  const digest = computeDatasetCandidateDigest(productionLike);
+  productionLike.batch.contentDigest = digest;
+  const workOrder = { ...productionLike.labelQAWorkOrder, snapshotDigest: digest };
+  const evaluation = evaluateWorkOrder(productionLike, workOrder);
 
-  const first = createReleaseManifest(evaluation, decisions);
-  const second = createReleaseManifest(evaluation, decisions);
-  assert.equal(first.status, "READY");
-  assert.equal(first.counts.humanPassed, 5);
-  assert.equal(first.source.dataNature, "synthetic");
-  assert.equal(first.source.license, "CC0-1.0");
-  assert.equal(first.manifestHash, second.manifestHash);
+  assert.equal(evaluation.preflight.status, "READY");
+  assert.equal(evaluation.evidence.some((item) => item.rule === "MODEL_CANDIDATE_MISSING"), false);
+  assert.equal(evaluation.targets.every((target) => "priorityScore" in target && !("riskScore" in target)), true);
 });
 
-test("repair and rejection decisions block release and preserve routing", () => {
-  const evaluation = evaluateBatch(payload);
-  const required = evaluation.targets.filter((item) => item.reviewRequired);
-  const decisions = {};
-  for (const target of required) {
-    decisions[target.id] = createDecision(target, "pass", "人工复核通过当前目标关联");
-  }
-  decisions[required[0].id] = createDecision(required[0], "repair", "速度属性需要标注返修");
+test("qualification requires cluster decisions plus remediation recheck on a new digest", () => {
+  const evaluation = evaluateWorkOrder(payload);
+  const blocked = createLabelQualityManifest(evaluation);
+  assert.equal(blocked.status, "BLOCKED");
+  assert.equal(blocked.qualifiedForUses.length, 0);
+  assert.equal(blocked.issueSummary.unresolvedClusters.length, 2);
 
-  const manifest = createReleaseManifest(evaluation, decisions);
-  assert.equal(manifest.status, "BLOCKED");
-  assert.equal(manifest.blockers.length, 1);
-  assert.equal(manifest.blockers[0].route, "ANNOTATION_REWORK");
+  const resolved = resolveAllBlockingClusters(evaluation);
+  const awaiting = createLabelQualityManifest(
+    evaluation,
+    resolved.decisions,
+    resolved.remediations,
+    resolved.rechecks,
+  );
+  assert.equal(awaiting.status, "AWAITING_SIGNOFF");
+  assert.deepEqual(awaiting.qualifiedForUses, []);
+  const signOff = createQualificationSignOff(
+    evaluation,
+    awaiting.reviewedSnapshotDigest,
+    awaiting.reviewBundleHash,
+  );
+  const manifest = createLabelQualityManifest(
+    evaluation,
+    resolved.decisions,
+    resolved.remediations,
+    resolved.rechecks,
+    signOff,
+  );
+  assert.equal(manifest.status, "QUALIFIED");
+  assert.deepEqual(manifest.qualifiedForUses, ["simulation_seed"]);
+  assert.equal(manifest.assessmentScope.assessedTargetCount, 9);
+  assert.equal(manifest.qualifiedSnapshotDigest, payload.demoRecheck.snapshotDigest);
+  assert.equal(manifest.signOffStatus, "VALID");
+  assert.match(manifest.manifestHash, /^sha256:[a-f0-9]{64}$/);
+
+  const receipt = createSceneQLReceipt(manifest);
+  assert.equal(receipt.schemaVersion, "data-supply-result/1.0");
+  assert.equal(receipt.taskId, "TASK-LG-WZ-001");
+  assert.equal(receipt.provider, "LabelGuard");
+  assert.equal(receipt.status, "ACCEPTED");
+  assert.equal(receipt.humanDecision.decision, "ACCEPT");
+  assert.equal(receipt.providerResult.schemaVersion, "label-quality-manifest/1.0");
+  assert.equal(receipt.providerResult.qualificationStatus, "QUALIFIED");
+
+  const changedDecisions = structuredClone(resolved.decisions);
+  const firstClusterId = Object.keys(changedDecisions)[0];
+  changedDecisions[firstClusterId].reason += "（补充说明）";
+  const staleSignOffManifest = createLabelQualityManifest(
+    evaluation,
+    changedDecisions,
+    resolved.remediations,
+    resolved.rechecks,
+    signOff,
+  );
+  assert.equal(staleSignOffManifest.status, "BLOCKED");
+  assert.equal(staleSignOffManifest.signOffStatus, "STALE_OR_INVALID");
 });
 
-test("decision reason and hash behavior are validated", () => {
-  const evaluation = evaluateBatch(payload);
-  const target = evaluation.targets.find((item) => item.reviewRequired);
-  assert.throws(() => createDecision(target, "pass", "短"), /至少需要 4 个字符/);
-  assert.equal(stableHash({ b: 2, a: 1 }), stableHash({ a: 1, b: 2 }));
+test("recheck rejects unchanged or non-SHA snapshots", () => {
+  const evaluation = evaluateWorkOrder(payload);
+  const cluster = evaluation.issueClusters.find((item) => item.blocking);
+  const decision = createReviewDecision(cluster, "confirmed_issue", "确认同一规则在多目标重复出现", evaluation);
+  const remediation = createRemediationTask(cluster, decision, evaluation);
+  assert.throws(() => createRecheckRecord(remediation, remediation.sourceSnapshotDigest), /快照未变化/);
+  assert.throws(() => createRecheckRecord(remediation, "lg-deadbeef"), /SHA-256/);
+});
+
+test("cross-repo task contract and SHA-256 implementation are stable", () => {
+  const task = createDataSupplyTask(payload);
+  assert.equal(task.schemaVersion, "data-supply-task/1.0");
+  assert.equal(task.taskId, "TASK-LG-WZ-001");
+  assert.deepEqual(task.demandRef, { id: "DEM-WZ-001", version: "1.0" });
+  assert.equal(task.routeDecision.id, "ROUTE-DATA-QA");
+  assert.equal(task.routeDecision.type, "DATA_QA");
+  assert.equal(task.providerSpec.schemaVersion, "label-qa-work-order/1.0");
+  assert.equal(task.providerSpec.provider, "LabelGuard");
+  assert.equal(task.seedRefs.length, 1);
+  assert.equal(task.seedRefs[0].sampleTokens.length, 3);
+  assert.deepEqual(task, payload.dataSupplyTask);
+  assert.equal(preflightDataSupplyTask(structuredClone(task), payload).status, "READY");
+
+  const mismatched = structuredClone(task);
+  mismatched.inputAssetRefs[0].snapshotDigest = "sha256:" + "f".repeat(64);
+  assert.deepEqual(preflightDataSupplyTask(mismatched, payload).issues, ["INPUT_SNAPSHOT_DIGEST_MISMATCH"]);
+
+  const value = { b: 2, a: 1 };
+  const expected = "sha256:" + crypto.createHash("sha256").update(JSON.stringify({ a: 1, b: 2 })).digest("hex");
+  assert.equal(stableHash(value), expected);
 });

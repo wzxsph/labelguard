@@ -5,7 +5,11 @@ dist/
 !.env.example
 .DS_Store
 .vite/
+.wrangler/
+.dev.vars
+.dev.vars.*
 coverage/
+__pycache__/
 AGENT.md
 AGENTS.md
 prd/

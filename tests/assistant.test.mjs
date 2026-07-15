@@ -3,48 +3,53 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createMockAssistant, validateAssistantResponse } from "../src/assistant.mjs";
-import { evaluateBatch } from "../src/domain.mjs";
+import {
+  createMockClusterAssistant,
+  validateClusterAssistantResponse,
+} from "../src/assistant.mjs";
+import { evaluateWorkOrder } from "../src/domain.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, "..");
-const payload = JSON.parse(
-  fs.readFileSync(path.join(projectRoot, "public", "demo", "labelguard-batch-v1.json"), "utf8"),
-);
-const evaluation = evaluateBatch(payload);
+const payload = JSON.parse(fs.readFileSync(path.join(projectRoot, "public", "demo", "labelguard-batch-v1.json"), "utf8"));
+const evaluation = evaluateWorkOrder(payload);
+const cluster = evaluation.issueClusters.find((item) => item.systemic && item.blocking);
+const evidenceSet = new Set(cluster.evidenceIds);
+const clauseSet = new Set(cluster.specClauseIds);
+const context = {
+  cluster,
+  evidence: evaluation.evidence.filter((item) => evidenceSet.has(item.id)),
+  specClauses: evaluation.specClauses.filter((item) => clauseSet.has(item.id)),
+};
 
-test("mock assistant is deterministic and cites only target evidence", () => {
-  const target = evaluation.targets.find((item) => item.id === "TG-C03-185");
-  const first = createMockAssistant(target);
-  const second = createMockAssistant(target);
-
+test("cluster Mock is deterministic and cites closed evidence plus spec clauses", () => {
+  const first = createMockClusterAssistant(context);
+  const second = createMockClusterAssistant(context);
   assert.deepEqual(first, second);
   assert.equal(first.mode, "mock");
-  assert.equal(validateAssistantResponse(first, target).valid, true);
+  assert.equal(validateClusterAssistantResponse(first, context).valid, true);
 });
 
-test("assistant evidence allowlist rejects invented citations", () => {
-  const target = evaluation.targets.find((item) => item.reviewRequired);
+test("assistant rejects invented evidence and spec-clause citations", () => {
   const invalid = {
-    ...createMockAssistant(target),
+    ...createMockClusterAssistant(context),
     evidenceIds: ["EV-INVENTED-001"],
+    specClauseIds: ["SPEC-INVENTED-001"],
   };
-  const validation = validateAssistantResponse(invalid, target);
-
+  const validation = validateClusterAssistantResponse(invalid, context);
   assert.equal(validation.valid, false);
   assert.deepEqual(validation.invalidEvidenceIds, ["EV-INVENTED-001"]);
+  assert.deepEqual(validation.invalidSpecClauseIds, ["SPEC-INVENTED-001"]);
 });
 
-test("assistant schema rejects incomplete or duplicate structured output", () => {
-  const target = evaluation.targets.find((item) => item.reviewRequired);
-  const evidenceId = target.evidence[0].id;
+test("assistant schema rejects missing fields and duplicate citations", () => {
+  const evidenceId = context.evidence[0].id;
   const invalid = {
-    ...createMockAssistant(target),
-    reviewQuestion: "",
+    ...createMockClusterAssistant(context),
+    remediationDraft: "",
     evidenceIds: [evidenceId, evidenceId],
   };
-  const validation = validateAssistantResponse(invalid, target);
-
+  const validation = validateClusterAssistantResponse(invalid, context);
   assert.equal(validation.valid, false);
-  assert.deepEqual(validation.schemaErrors.sort(), ["evidenceIds", "reviewQuestion"]);
+  assert.deepEqual(validation.schemaErrors.sort(), ["evidenceIds", "remediationDraft"]);
 });

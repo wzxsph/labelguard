@@ -1,52 +1,54 @@
 import "./styles.css";
 import {
-  createDecision,
-  createReleaseManifest,
-  evaluateBatch,
+  createLabelQualityManifest,
+  createQualificationSignOff,
+  createRecheckRecord,
+  createRemediationTask,
+  createReviewDecision,
+  createSceneQLReceipt,
+  evaluateWorkOrder,
 } from "./domain.mjs";
 import {
-  createMockAssistant,
-  validateAssistantResponse,
+  createMockClusterAssistant,
+  validateClusterAssistantResponse,
 } from "./assistant.mjs";
 
 const root = document.querySelector("#app");
-const STORAGE_KEY = "labelguard-demo-decisions-v1";
+const STORAGE_KEY = "labelguard-work-order-v3";
 
 const state = {
   payload: null,
   evaluation: null,
-  view: "queue",
-  selectedId: null,
+  view: "order",
+  selectedClusterId: null,
+  selectedTargetId: null,
   decisions: new Map(),
+  remediations: new Map(),
+  rechecks: new Map(),
+  signOff: null,
   assistant: new Map(),
   assistantLoading: new Set(),
-  aiStatus: {
-    mode: "mock",
-    transport: "client-deterministic",
-    requestedMode: "mock",
-    remoteReady: false,
-  },
+  aiStatus: { mode: "mock", transport: "client-deterministic", requestedMode: "mock", remoteReady: false },
 };
 
 const CLASS_LABELS = {
-  pedestrian: "行人",
-  cyclist: "骑行者",
   car: "乘用车",
-  traffic_cone: "交通锥",
+  construction_vehicle: "施工车辆",
+  construction_worker: "施工人员",
 };
 
 const ROUTE_LABELS = {
-  AUTO_PASS: "自动放行",
-  HUMAN_REVIEW: "人工复核",
-  EXPERT_REVIEW: "高级 QA",
-  RELEASE_CANDIDATE: "进入候选版本",
   ANNOTATION_REWORK: "标注返修",
+  EXPERT_ARBITRATION: "专家仲裁",
+  DATA_READINESS_REPAIR: "数据准备修复",
+  NEEDS_MORE_EVIDENCE: "补充证据",
+  NO_REMEDIATION: "无需返修",
 };
 
 const DECISION_LABELS = {
-  pass: "通过",
-  reject: "驳回",
-  repair: "返修",
+  confirmed_issue: "确认问题",
+  not_an_issue: "不构成问题",
+  needs_more_evidence: "证据不足",
 };
 
 function escapeHtml(value) {
@@ -58,155 +60,111 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function shortDigest(value) {
+  return value ? `${value.slice(0, 15)}…${value.slice(-8)}` : "—";
+}
+
 function shieldIcon() {
-  return [
-    '<svg viewBox="0 0 24 24" aria-hidden="true">',
-    '<path fill="#061710" d="M12 2.4 20 5.5v5.7c0 5-3.2 8.3-8 10-4.8-1.7-8-5-8-10V5.5z"/>',
-    '<path fill="#35ddb2" d="m8.1 11.8 2.3 2.3 5.6-6 1.4 1.4-7 7.4-3.7-3.7z"/>',
-    "</svg>",
-  ].join("");
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#061710" d="M12 2.4 20 5.5v5.7c0 5-3.2 8.3-8 10-4.8-1.7-8-5-8-10V5.5z"/><path fill="#35ddb2" d="m8.1 11.8 2.3 2.3 5.6-6 1.4 1.4-7 7.4-3.7-3.7z"/></svg>';
 }
 
-function severityOf(target) {
-  const order = ["critical", "high", "medium", "low"];
-  return order.find((severity) => target.evidence.some((item) => item.severity === severity)) ?? "auto";
+function activeCluster() {
+  return state.evaluation.issueClusters.find((item) => item.id === state.selectedClusterId) ?? state.evaluation.issueClusters[0];
 }
 
-function severityLabel(severity) {
+function clusterContext(cluster) {
+  const evidenceIds = new Set(cluster.evidenceIds);
+  const clauseIds = new Set(cluster.specClauseIds);
   return {
-    critical: "阻断",
-    high: "高风险",
-    medium: "中风险",
-    low: "低风险",
-    auto: "规则通过",
-  }[severity];
+    cluster,
+    evidence: state.evaluation.evidence.filter((item) => evidenceIds.has(item.id)),
+    specClauses: state.evaluation.specClauses.filter((item) => clauseIds.has(item.id)),
+  };
 }
 
-function restoreDecisions() {
+function currentManifest() {
+  return createLabelQualityManifest(
+    state.evaluation,
+    state.decisions,
+    state.remediations,
+    state.rechecks,
+    state.signOff,
+  );
+}
+
+function persistState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    snapshotDigest: state.evaluation.workOrder.snapshotDigest,
+    decisions: [...state.decisions.entries()],
+    remediations: [...state.remediations.entries()],
+    rechecks: [...state.rechecks.entries()],
+    signOff: state.signOff,
+  }));
+}
+
+function restoreState() {
   try {
-    const records = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    state.decisions = new Map(records.map((item) => [item.targetId, item]));
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    if (!saved || saved.snapshotDigest !== state.evaluation.workOrder.snapshotDigest) return;
+    state.decisions = new Map(saved.decisions ?? []);
+    state.remediations = new Map(saved.remediations ?? []);
+    state.rechecks = new Map(saved.rechecks ?? []);
+    state.signOff = saved.signOff ?? null;
   } catch {
-    state.decisions = new Map();
+    localStorage.removeItem(STORAGE_KEY);
   }
-}
-
-function persistDecisions() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.decisions.values()]));
 }
 
 function pageShell(content) {
   const evaluation = state.evaluation;
-  const manifest = createReleaseManifest(evaluation, state.decisions);
-  const reviewTotal = evaluation.summary.reviewCount;
-  const completed = [...state.decisions.values()].filter((item) =>
-    evaluation.targets.some((target) => target.id === item.targetId && target.reviewRequired),
+  const manifest = currentManifest();
+  const decided = [...state.decisions.values()].filter((item) =>
+    evaluation.issueClusters.some((cluster) => cluster.blocking && cluster.id === item.clusterId),
   ).length;
-  const remoteUnavailable = state.aiStatus.requestedMode === "remote" && !state.aiStatus.remoteReady;
-  const aiMode = state.aiStatus.mode === "remote"
-    ? "Remote · server"
-    : remoteUnavailable
-      ? "Mock · remote unavailable"
-      : "Mock · deterministic";
+  const modelLabel = state.aiStatus.mode === "remote" ? "MiniMax-M3 · server" : "Mock · deterministic";
   const nav = [
-    { id: "queue", index: "01", title: "风险队列", meta: reviewTotal + " 待处理" },
-    { id: "review", index: "02", title: "目标复核", meta: completed + "/" + reviewTotal },
-    { id: "release", index: "03", title: "版本放行", meta: manifest.status },
+    { id: "order", index: "01", title: "QA 工单", meta: evaluation.preflight.status },
+    { id: "review", index: "02", title: "问题簇复核", meta: `${decided}/${evaluation.summary.blockingClusterCount}` },
+    { id: "qualification", index: "03", title: "用途资格", meta: manifest.status },
   ];
-  const navHtml = nav
-    .map((item) =>
-      [
-        '<button class="nav-button ' + (state.view === item.id ? "active" : "") + '" data-nav="' + item.id + '"' + (state.view === item.id ? ' aria-current="page"' : "") + '>',
-        '<span class="nav-index">' + item.index + "</span>",
-        '<span class="nav-title">' + item.title + "</span>",
-        '<span class="nav-meta">' + item.meta + "</span>",
-        "</button>",
-      ].join(""),
-    )
-    .join("");
-
   return [
-    '<div class="app-shell">',
-    '<header class="topbar">',
-    '<div class="brand"><div class="brand-mark">' + shieldIcon() + "</div>",
-    '<div><div class="brand-name">LabelGuard</div><div class="brand-caption">Annotation quality control</div></div></div>',
-    '<div class="topbar-right">',
-    '<div class="batch-chip"><span>批次</span><strong>' + escapeHtml(evaluation.batch.id) + "</strong></div>",
-    '<div class="mode-chip" title="' + escapeHtml(state.aiStatus.transport) + '"><span class="live-dot"></span><strong>' + escapeHtml(aiMode) + "</strong></div>",
-    "</div></header>",
-    '<nav class="sidebar" aria-label="QA 工作流"><div class="nav-label">QA Workflow</div>',
-    navHtml,
-    '<div class="sidebar-note"><strong>证据边界</strong><p>规则负责检测事实；模型输出只做分歧信号；人工决策决定路由与放行。</p></div>',
-    "</nav>",
-    '<main class="workspace">' + content + "</main>",
-    "</div>",
+    '<div class="app-shell"><header class="topbar">',
+    '<div class="brand"><div class="brand-mark">' + shieldIcon() + '</div><div><div class="brand-name">LabelGuard</div><div class="brand-caption">Dataset qualification gate</div></div></div>',
+    '<div class="topbar-right"><div class="batch-chip"><span>Supply Request</span><strong>' + escapeHtml(evaluation.workOrder.supplyRequestId) + '</strong></div>',
+    '<div class="mode-chip" title="' + escapeHtml(state.aiStatus.transport) + '"><span class="live-dot"></span><strong>' + escapeHtml(modelLabel) + '</strong></div></div></header>',
+    '<nav class="sidebar" aria-label="Label QA workflow"><div class="nav-label">QA Workflow</div>',
+    nav.map((item) => '<button class="nav-button ' + (state.view === item.id ? "active" : "") + '" data-nav="' + item.id + '"><span class="nav-index">' + item.index + '</span><span class="nav-title">' + item.title + '</span><span class="nav-meta">' + escapeHtml(item.meta) + '</span></button>').join(""),
+    '<div class="sidebar-contract"><span>Intended use</span><strong>' + escapeHtml(evaluation.workOrder.intendedUse) + '</strong><span>Snapshot</span><code>' + escapeHtml(shortDigest(evaluation.workOrder.snapshotDigest)) + '</code></div></nav>',
+    '<main class="workspace">' + content + '</main></div>',
   ].join("");
 }
 
-function metricCard(label, value, foot, accent = false) {
-  return [
-    '<article class="metric-card ' + (accent ? "accent" : "") + '">',
-    '<div class="metric-label">' + escapeHtml(label) + "</div>",
-    '<div class="metric-value">' + escapeHtml(value) + "</div>",
-    '<div class="metric-foot">' + escapeHtml(foot) + "</div>",
-    "</article>",
-  ].join("");
+function metric(label, value, foot, accent = false) {
+  return '<article class="metric-card ' + (accent ? "accent" : "") + '"><div class="metric-label">' + escapeHtml(label) + '</div><div class="metric-value">' + escapeHtml(value) + '</div><div class="metric-foot">' + escapeHtml(foot) + '</div></article>';
 }
 
-function renderQueue() {
-  const evaluation = state.evaluation;
-  const targets = [...evaluation.targets].sort((a, b) => b.riskScore - a.riskScore);
-  const rows = targets
-    .map((target) => {
-      const severity = severityOf(target);
-      return [
-        "<tr>",
-        '<td><div class="target-cell"><strong>' + escapeHtml(target.id) + "</strong><span>" + escapeHtml(target.trackId) + "</span></div></td>",
-        "<td>" + escapeHtml(CLASS_LABELS[target.class] ?? target.class) + "</td>",
-        "<td>" + escapeHtml(target.frameId) + "</td>",
-        '<td><span class="severity-pill ' + severity + '">' + severityLabel(severity) + "</span></td>",
-        '<td><div class="risk-score"><strong>' + target.riskScore + '</strong><span class="risk-track"><span class="risk-fill" style="width:' + target.riskScore + '%"></span></span></div></td>',
-        "<td>" + target.evidence.length + "</td>",
-        "<td>" + escapeHtml(ROUTE_LABELS[target.route] ?? target.route) + "</td>",
-        '<td><button class="button" data-open-target="' + escapeHtml(target.id) + '">' + (target.reviewRequired ? "复核" : "查看") + "</button></td>",
-        "</tr>",
-      ].join("");
-    })
-    .join("");
-
-  const ruleGroups = [
-    { key: "geometry", icon: "G", name: "几何边界", desc: "Box / 尺寸 / 图像范围" },
-    { key: "projection", icon: "P", name: "投影关联", desc: "3D 投影与 2D 标注" },
-    { key: "temporal", icon: "T", name: "时序连续性", desc: "Track / 速度 / 时间戳" },
-    { key: "model_disagreement", icon: "M", name: "模型分歧", desc: "第二意见，不作为真值" },
-    { key: "sensor_support", icon: "S", name: "传感器支持", desc: "LiDAR 点数与可见性" },
+function renderOrder() {
+  const { workOrder, preflight, summary, qualityProfile } = state.evaluation;
+  const fields = [
+    ["Demand", `${workOrder.demandRef.id} · v${workOrder.demandRef.version}`],
+    ["Dataset candidate", workOrder.datasetCandidateId],
+    ["Candidate label", workOrder.candidateLabelVersion],
+    ["Sensor profile", workOrder.sensorProfile],
+    ["Quality profile", `${qualityProfile.id} · v${qualityProfile.version}`],
+    ["SLA", workOrder.slaDueAt],
   ];
-  const ruleHtml = ruleGroups
-    .map((group) => {
-      const count = evaluation.evidence.filter((item) => item.category === group.key).length;
-      return [
-        '<div class="rule-item"><span class="rule-icon">' + group.icon + "</span><div>",
-        "<strong>" + group.name + "</strong><span>" + group.desc + "</span></div>",
-        '<span class="severity-pill ' + (count > 0 ? "medium" : "auto") + '">' + count + "</span></div>",
-      ].join("");
-    })
-    .join("");
-
   const content = [
-    '<div class="page-head"><div><div class="eyebrow">Batch inspection</div><h1>标注风险队列</h1>',
-    '<p class="page-description">确定性规则已绑定批次、标签版本与目标证据。</p></div>',
-    '<div class="button-row"><button class="button" data-reset>重置演示</button><button class="button primary" data-nav="review">进入人工复核</button></div></div>',
+    '<div class="page-head"><div><div class="eyebrow">Label QA work order</div><h1>' + escapeHtml(workOrder.workOrderId) + '</h1><p class="page-description">' + escapeHtml(workOrder.supplyRequestId) + '</p></div><button class="button primary" data-nav="review" ' + (preflight.status !== "READY" ? "disabled" : "") + '>进入问题簇复核</button></div>',
     '<section class="metrics">',
-    metricCard("目标总数", evaluation.summary.targetCount, evaluation.summary.frameCount + " frames"),
-    metricCard("需人工复核", evaluation.summary.reviewCount, "按最高风险排序", true),
-    metricCard("自动通过", evaluation.summary.autoPassCount, "仍进入统计抽检"),
-    metricCard("风险证据", evaluation.summary.evidenceCount, evaluation.ruleVersion),
-    "</section>",
-    '<section class="content-grid">',
-    '<div class="panel"><div class="panel-head"><span class="panel-title">Target / Track 风险</span><span class="panel-meta">' + escapeHtml(evaluation.batch.candidateLabelVersion) + "</span></div>",
-    '<table class="data-table" aria-label="目标与轨迹风险队列"><thead><tr><th>Target</th><th>类别</th><th>Frame</th><th>等级</th><th>风险分</th><th>证据</th><th>路由</th><th></th></tr></thead><tbody>' + rows + "</tbody></table></div>",
-    '<aside class="panel"><div class="panel-head"><span class="panel-title">规则运行</span><span class="status-pill ready">可复现</span></div><div class="panel-body"><div class="rule-list">' + ruleHtml + "</div></div></aside>",
-    "</section>",
+    metric("Preflight", preflight.status, preflight.status === "READY" ? "字段、用途与快照一致" : "需补齐后再运行", true),
+    metric("Scope", summary.targetCount, `${summary.frameCount} frames · exhaustive`),
+    metric("Issue clusters", summary.clusterCount, `${summary.systematicClusterCount} systematic`),
+    metric("Blocking", summary.blockingClusterCount, "Mock disagreement excluded"),
+    '</section>',
+    '<section class="order-grid"><div class="panel"><div class="panel-head"><span class="panel-title">SceneQL 下发契约</span><span class="status-pill ' + (preflight.status === "READY" ? "ready" : "blocked") + '">' + escapeHtml(preflight.status) + '</span></div><div class="contract-grid">',
+    fields.map(([label, value]) => '<div class="contract-field"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>').join(""),
+    '<div class="contract-field wide"><span>Immutable snapshot digest</span><code>' + escapeHtml(workOrder.snapshotDigest) + '</code></div></div></div>',
+    '<aside class="panel"><div class="panel-head"><span class="panel-title">Preflight gate</span><span class="panel-meta">deterministic</span></div><div class="panel-body"><div class="gate-check pass"><strong>字段完整</strong><span>required contract fields</span></div><div class="gate-check pass"><strong>用途受支持</strong><span>' + escapeHtml(workOrder.intendedUse) + '</span></div><div class="gate-check pass"><strong>快照一致</strong><span>stale decisions cannot be reused</span></div><div class="gate-check pass"><strong>许可已声明</strong><span>' + escapeHtml(workOrder.licenseRef) + '</span></div></div></aside></section>',
   ].join("");
   return pageShell(content);
 }
@@ -214,173 +172,88 @@ function renderQueue() {
 function overlay(box, className, label) {
   if (!box) return "";
   const frame = state.evaluation.batch.frameSize;
-  const style = [
-    "left:" + ((box.x / frame.width) * 100).toFixed(3) + "%",
-    "top:" + ((box.y / frame.height) * 100).toFixed(3) + "%",
-    "width:" + ((box.width / frame.width) * 100).toFixed(3) + "%",
-    "height:" + ((box.height / frame.height) * 100).toFixed(3) + "%",
-  ].join(";");
-  return '<div class="box-overlay ' + className + '" style="' + style + '" aria-hidden="true"><span class="box-label">' + escapeHtml(label) + "</span></div>";
+  const style = `left:${(box.x / frame.width * 100).toFixed(3)}%;top:${(box.y / frame.height * 100).toFixed(3)}%;width:${(box.width / frame.width * 100).toFixed(3)}%;height:${(box.height / frame.height * 100).toFixed(3)}%`;
+  return '<div class="box-overlay ' + className + '" style="' + style + '" aria-hidden="true"><span class="box-label">' + escapeHtml(label) + '</span></div>';
 }
 
-function renderAssistant(target) {
-  const response = state.assistant.get(target.id) ?? createMockAssistant(target);
-  const loading = state.assistantLoading.has(target.id);
-  const steps = response.nextSteps.map((item) => "<li>" + escapeHtml(item) + "</li>").join("");
-  const citations = response.evidenceIds
-    .map((id) => '<span class="citation">' + escapeHtml(id) + "</span>")
-    .join("");
+function projectionWireframe(corners) {
+  if (!Array.isArray(corners) || corners.length !== 8) return "";
+  const frame = state.evaluation.batch.frameSize;
+  const edges = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
+  const lines = edges.map(([a, b]) => `<line x1="${corners[a].x}" y1="${corners[a].y}" x2="${corners[b].x}" y2="${corners[b].y}"></line>`).join("");
+  return `<svg class="projection-wireframe" viewBox="0 0 ${frame.width} ${frame.height}" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>`;
+}
+
+function renderAssistant(context) {
+  const response = state.assistant.get(context.cluster.id) ?? createMockClusterAssistant(context);
+  const loading = state.assistantLoading.has(context.cluster.id);
   return [
-    '<div class="assistant-card"><div class="assistant-title"><span>AI 证据助手</span>',
-    '<button class="button" data-assistant-refresh ' + (loading ? "disabled" : "") + ">" + (loading ? "处理中…" : "重新整理") + "</button></div>",
-    "<p>" + escapeHtml(response.summary) + "</p>",
-    "<p><strong>复核问题：</strong>" + escapeHtml(response.reviewQuestion) + "</p>",
-    steps ? "<ul>" + steps + "</ul>" : "",
-    '<div class="citation-list">' + citations + "</div>",
-    '<p style="margin-top:8px;color:#7189a1">' + escapeHtml(response.limitation) + "</p>",
-    "</div>",
+    '<section class="assistant-card"><div class="assistant-title"><span>AI · IssueCluster 草拟</span><button class="button compact" data-assistant-refresh ' + (loading ? "disabled" : "") + '>' + (loading ? "处理中…" : "重新整理") + '</button></div>',
+    '<p>' + escapeHtml(response.summary) + '</p>',
+    '<div class="assistant-field"><span>返修草稿</span><strong>' + escapeHtml(response.remediationDraft) + '</strong></div>',
+    '<div class="assistant-field"><span>复检计划</span><strong>' + escapeHtml(response.recheckPlan) + '</strong></div>',
+    '<div class="citation-list">' + [...response.evidenceIds, ...response.specClauseIds].map((id) => '<code>' + escapeHtml(id) + '</code>').join("") + '</div>',
+    '<p class="limitation">' + escapeHtml(response.limitation) + '</p></section>',
   ].join("");
 }
 
 function renderReview() {
   const evaluation = state.evaluation;
-  const reviewTargets = evaluation.targets
-    .filter((target) => target.reviewRequired)
-    .sort((a, b) => b.riskScore - a.riskScore);
-  if (!state.selectedId || !evaluation.targets.some((item) => item.id === state.selectedId)) {
-    state.selectedId = reviewTargets[0]?.id ?? evaluation.targets[0]?.id;
-  }
-  const target = evaluation.targets.find((item) => item.id === state.selectedId);
-  const currentDecision = state.decisions.get(target.id);
-  const queueHtml = reviewTargets
-    .map((item) => {
-      const decision = state.decisions.get(item.id);
-      const severity = severityOf(item);
-      return [
-        '<button class="queue-item ' + (item.id === target.id ? "active" : "") + '" data-select-target="' + escapeHtml(item.id) + '" aria-pressed="' + (item.id === target.id) + '">',
-        '<div class="queue-item-top"><strong>' + escapeHtml(item.id) + '</strong><span class="severity-pill ' + severity + '">' + severityLabel(severity) + "</span></div>",
-        "<p>" + escapeHtml(CLASS_LABELS[item.class] ?? item.class) + " · " + escapeHtml(item.frameId) + "</p>",
-        '<div class="queue-item-foot"><span>' + item.evidence.length + " evidence</span><span>" + (decision ? DECISION_LABELS[decision.decision] : "待复核") + "</span></div>",
-        "</button>",
-      ].join("");
-    })
-    .join("");
-
-  const trackTargets = evaluation.targets
-    .filter((item) => item.trackId === target.trackId)
-    .sort((a, b) => a.timestampMs - b.timestampMs);
-  const timeline = trackTargets
-    .map((item) =>
-      '<button class="timeline-frame ' + (item.id === target.id ? "active" : "") + '" data-select-target="' + escapeHtml(item.id) + '" aria-pressed="' + (item.id === target.id) + '">' +
-      escapeHtml(item.frameId.replace("FRAME-", "F-")) + "<br>" + item.timestampMs + " ms</button>",
-    )
-    .join("");
-  const evidenceHtml = target.evidence.length
-    ? target.evidence
-      .map((item) =>
-        [
-          '<article class="evidence-card"><div class="evidence-top"><strong>' + escapeHtml(item.title) + '</strong><span class="severity-pill ' + item.severity + '">' + severityLabel(item.severity) + "</span></div>",
-          "<p>" + escapeHtml(item.detail) + "</p>",
-          '<div class="evidence-values"><div><span>Observed</span><code>' + escapeHtml(item.observed) + '</code></div><div><span>Expected</span><code>' + escapeHtml(item.expected) + "</code></div></div>",
-          '<div class="citation-list"><span class="citation">' + escapeHtml(item.id) + '</span><span class="citation">' + escapeHtml(item.source) + "</span></div></article>",
-        ].join(""),
-      )
-      .join("")
-    : '<div class="empty">当前目标未命中风险规则。</div>';
-  const modelBox = target.modelCandidate?.box2d;
-  const decisionNotice = currentDecision
-    ? '<div class="decision-current">当前：' + DECISION_LABELS[currentDecision.decision] + " → " + escapeHtml(ROUTE_LABELS[currentDecision.route] ?? currentDecision.route) + "<br>" + escapeHtml(currentDecision.reason) + "</div>"
-    : "";
-
+  const cluster = activeCluster();
+  if (!cluster) return pageShell('<div class="empty">当前工单没有 IssueCluster。</div>');
+  const context = clusterContext(cluster);
+  const targetCandidates = evaluation.targets.filter((target) => cluster.targetIds.includes(target.id));
+  if (!targetCandidates.some((target) => target.id === state.selectedTargetId)) state.selectedTargetId = targetCandidates[0].id;
+  const target = evaluation.targets.find((item) => item.id === state.selectedTargetId);
+  const targetEvidence = context.evidence.filter((item) => item.targetId === target.id);
+  const decision = state.decisions.get(cluster.id);
+  const remediation = state.remediations.get(cluster.id);
+  const recheck = state.rechecks.get(cluster.id);
+  const clusterList = evaluation.issueClusters.map((item) => {
+    const itemDecision = state.decisions.get(item.id);
+    return '<button class="cluster-item ' + (item.id === cluster.id ? "active" : "") + '" data-select-cluster="' + escapeHtml(item.id) + '"><div><strong>' + escapeHtml(item.title) + '</strong><span>' + (item.systemic ? "SYSTEMATIC" : "SINGLE") + ' · ' + item.targetIds.length + ' targets</span></div><span class="priority">' + item.priorityScore + '</span><div class="cluster-foot"><span>' + (item.blocking ? "BLOCKING" : "INFO") + '</span><span>' + escapeHtml(itemDecision ? DECISION_LABELS[itemDecision.decision] : "待处理") + '</span></div></button>';
+  }).join("");
+  const targetTabs = targetCandidates.map((item) => '<button class="target-tab ' + (item.id === target.id ? "active" : "") + '" data-select-target="' + escapeHtml(item.id) + '">' + escapeHtml(item.id) + '</button>').join("");
+  const evidenceCards = targetEvidence.map((item) => '<article class="evidence-card"><div class="evidence-top"><strong>' + escapeHtml(item.title) + '</strong><span class="severity-pill ' + item.severity + '">' + escapeHtml(item.severity.toUpperCase()) + '</span></div><div class="evidence-values"><div><span>Observed</span><code>' + escapeHtml(item.observed) + '</code></div><div><span>Expected</span><code>' + escapeHtml(item.expected) + '</code></div></div><div class="citation-list"><code>' + escapeHtml(item.id) + '</code><code>' + escapeHtml(item.specClauseId) + '</code></div></article>').join("");
+  const workflowCard = decision ? [
+    '<div class="workflow-status"><strong>' + escapeHtml(DECISION_LABELS[decision.decision]) + '</strong><span>' + escapeHtml(ROUTE_LABELS[decision.route]) + '</span><p>' + escapeHtml(decision.reason) + '</p></div>',
+    remediation ? '<div class="remediation-card"><span>Remediation</span><strong>' + escapeHtml(remediation.id) + '</strong><p>' + escapeHtml(remediation.requestedAction) + '</p>' + (recheck ? '<div class="recheck-pass">RECHECK PASSED · SYNTHETIC DEMO</div>' : '<button class="button primary" data-demo-recheck>记录返修完成并复检</button>') + '</div>' : "",
+  ].join("") : "";
+  const reference = target.demoReferenceAnnotation?.projectedBox2d;
   const content = [
-    '<section class="review-layout">',
-    '<aside class="panel"><div class="panel-head"><span class="panel-title">人工队列</span><span class="panel-meta">' + state.decisions.size + "/" + reviewTargets.length + "</span></div><div class=\"review-queue\">" + queueHtml + "</div></aside>",
-    '<section class="panel viewer-panel"><div class="panel-head"><span class="panel-title">' + escapeHtml(target.id) + " · " + escapeHtml(target.trackId) + '</span><span class="route-pill">' + escapeHtml(ROUTE_LABELS[target.route]) + "</span></div>",
-    '<div class="viewer-wrap"><div class="viewer"><img src="' + escapeHtml(target.image) + '" alt="合成演示帧 ' + escapeHtml(target.frameId) + '，当前复核目标 ' + escapeHtml(target.id) + '">',
-    overlay(target.box2d, "annotation", "LABEL " + target.id),
-    overlay(target.projection2d, "projection", "3D PROJECTION"),
-    overlay(modelBox, "model", "MODEL " + (target.modelCandidate?.score?.toFixed(2) ?? "")),
-    '</div><div class="viewer-toolbar"><div class="legend">',
-    '<span class="legend-item"><span class="legend-swatch" style="background:var(--mint)"></span>人工标签</span>',
-    '<span class="legend-item"><span class="legend-swatch" style="background:var(--amber)"></span>3D 投影</span>',
-    '<span class="legend-item"><span class="legend-swatch" style="background:var(--violet)"></span>模型候选</span>',
-    '</div><span class="frame-meta">' + escapeHtml(target.frameId) + " · " + target.timestampMs + " ms</span></div></div>",
-    '<div class="timeline"><div class="timeline-label">Track timeline</div><div class="timeline-track">' + timeline + "</div></div>",
-    '<div class="target-facts">',
-    '<div class="fact"><span>Class</span><strong>' + escapeHtml(CLASS_LABELS[target.class] ?? target.class) + "</strong></div>",
-    '<div class="fact"><span>LiDAR</span><strong>' + target.lidarPoints + " points</strong></div>",
-    '<div class="fact"><span>Velocity</span><strong>' + target.velocityMps.toFixed(1) + " m/s</strong></div>",
-    '<div class="fact"><span>Model</span><strong>' + escapeHtml(target.modelCandidate ? target.modelCandidate.class + " " + target.modelCandidate.score.toFixed(2) : "No candidate") + "</strong></div>",
-    "</div></section>",
-    '<aside class="panel review-side"><div class="panel-head"><span class="panel-title">风险证据</span><span class="panel-meta">' + target.evidence.length + " items</span></div><div class=\"panel-body\">",
-    '<div class="evidence-stack">' + evidenceHtml + "</div>",
-    renderAssistant(target),
-    '<div class="decision-box"><label for="decision-reason">人工判断依据（必填）</label>',
-    '<textarea id="decision-reason" placeholder="只记录可观察事实与规范依据…">' + escapeHtml(currentDecision?.reason ?? "") + "</textarea>",
-    '<div class="decision-actions">',
-    '<button class="decision-button pass" data-decision="pass">通过</button>',
-    '<button class="decision-button reject" data-decision="reject">驳回</button>',
-    '<button class="decision-button repair" data-decision="repair">返修</button>',
-    "</div>" + decisionNotice + "</div></div></aside>",
-    "</section>",
+    '<section class="review-layout"><aside class="panel cluster-panel"><div class="panel-head"><span class="panel-title">Issue clusters</span><span class="panel-meta">' + evaluation.summary.clusterCount + '</span></div><div class="cluster-list">' + clusterList + '</div></aside>',
+    '<section class="panel viewer-panel"><div class="panel-head"><div><span class="panel-title">' + escapeHtml(cluster.id) + '</span><span class="subline">' + escapeHtml(ROUTE_LABELS[cluster.recommendedRoute]) + '</span></div><span class="status-pill ' + (cluster.blocking ? "blocked" : "ready") + '">' + (cluster.blocking ? "BLOCKING" : "INFO ONLY") + '</span></div>',
+    '<div class="target-tabs">' + targetTabs + '</div><div class="viewer-wrap"><div class="viewer"><img src="' + escapeHtml(target.image) + '" alt="nuScenes CAM_FRONT ' + escapeHtml(target.frameId) + '">' + projectionWireframe(target.candidateProjectionCorners2d) + overlay(target.candidate2d, "annotation", target.qaPerturbation ? "CANDIDATE · SYNTH QA" : "CANDIDATE") + overlay(target.candidateProjection2d, "projection", "CANDIDATE 3D PROJECTION") + overlay(reference, "reference", "DEMO GT REFERENCE") + overlay(target.modelCandidate?.box2d, "model", "MOCK SECOND OPINION") + '</div>',
+    '<div class="viewer-toolbar"><div class="legend"><span><i class="mint"></i>候选 2D</span><span><i class="amber"></i>候选 3D 投影</span><span><i class="blue"></i>Demo-only 官方参考</span><span><i class="violet"></i>Mock</span></div><span>' + escapeHtml(target.frameId) + '</span></div>',
+    '<div class="layer-strip"><span>REAL MEDIA</span><span>CANDIDATE LABEL</span><span class="synthetic">' + (target.qaPerturbation ? "SYNTH QA PERTURBATION" : "NO PERTURBATION") + '</span><span>OPTIONAL DEMO REFERENCE</span></div></div>',
+    '<div class="target-facts"><div><span>Class</span><strong>' + escapeHtml(CLASS_LABELS[target.class] ?? target.class) + '</strong></div><div><span>Track</span><strong>' + escapeHtml(target.trackId) + '</strong></div><div><span>Sample</span><strong>' + escapeHtml(target.frameSource.sampleToken.slice(0, 8)) + '</strong></div><div><span>LiDAR</span><strong>' + target.lidarPoints + ' pts</strong></div></div></section>',
+    '<aside class="panel review-side"><div class="panel-head"><span class="panel-title">证据与处置</span><span class="panel-meta">' + context.evidence.length + ' evidence</span></div><div class="panel-body"><div class="evidence-stack">' + evidenceCards + '</div>' + renderAssistant(context),
+    '<div class="decision-box"><label for="decision-reason">QA 判断依据</label><textarea id="decision-reason" placeholder="引用可观察事实与规范条款…">' + escapeHtml(decision?.reason ?? "") + '</textarea><div class="decision-actions"><button data-decision="confirmed_issue">确认问题</button><button data-decision="not_an_issue">不构成问题</button><button data-decision="needs_more_evidence">证据不足</button></div>' + workflowCard + '</div></div></aside></section>',
   ].join("");
   return pageShell(content);
 }
 
-function renderRelease() {
-  const evaluation = state.evaluation;
-  const manifest = createReleaseManifest(evaluation, state.decisions);
-  const statusReady = manifest.status === "READY";
-  const requiredTargets = evaluation.targets.filter((target) => target.reviewRequired);
-  const rows = requiredTargets
-    .map((target) => {
-      const decision = state.decisions.get(target.id);
-      return [
-        "<tr>",
-        '<td><div class="target-cell"><strong>' + escapeHtml(target.id) + "</strong><span>" + escapeHtml(target.trackId) + "</span></div></td>",
-        "<td>" + escapeHtml(target.frameId) + "</td>",
-        "<td>" + (decision ? escapeHtml(DECISION_LABELS[decision.decision]) : '<span class="severity-pill medium">待处理</span>') + "</td>",
-        "<td>" + escapeHtml(decision ? ROUTE_LABELS[decision.route] : ROUTE_LABELS[target.route]) + "</td>",
-        "<td>" + escapeHtml(decision?.reason ?? "—") + "</td>",
-        "</tr>",
-      ].join("");
-    })
-    .join("");
-  const unresolved = manifest.unresolved.map((id) => {
-    const target = evaluation.targets.find((item) => item.id === id);
-    return '<div class="blocker-item"><strong>' + escapeHtml(id) + '</strong><p>尚未完成人工复核 · ' + escapeHtml(target?.frameId) + "</p></div>";
-  });
-  const blockers = manifest.blockers.map((item) =>
-    '<div class="blocker-item"><strong>' + escapeHtml(item.targetId) + " · " + escapeHtml(DECISION_LABELS[item.decision]) + '</strong><p>' + escapeHtml(item.reason) + " → " + escapeHtml(ROUTE_LABELS[item.route]) + "</p></div>",
-  );
-  const blockerHtml = [...unresolved, ...blockers].join("") || '<div class="blocker-item"><strong>全部门禁通过</strong><p>候选版本具备当前 Demo 规则范围内的放行证据。</p></div>';
-
+function renderQualification() {
+  const manifest = currentManifest();
+  const receipt = createSceneQLReceipt(manifest);
+  const ready = manifest.status === "QUALIFIED";
+  const unresolved = manifest.issueSummary?.unresolvedClusters ?? [];
   const content = [
-    '<div class="page-head"><div><div class="eyebrow">Release gate</div><h1>QA 决策与版本放行</h1>',
-    '<p class="page-description">放行状态由规则与人工决策计算，AI 无权修改。</p></div>',
-    '<div class="button-row"><button class="button" data-nav="review">返回复核</button><button class="button primary" data-download-manifest>下载决策清单</button></div></div>',
-    '<section class="release-grid"><div class="panel">',
-    '<div class="release-hero"><div class="release-state"><div class="release-icon ' + (statusReady ? "" : "blocked") + '">' + (statusReady ? "✓" : "!") + "</div><div>",
-    "<h2>" + (statusReady ? "READY · 可发布候选版本" : "BLOCKED · 暂不可放行") + "</h2>",
-    "<p>" + escapeHtml(evaluation.batch.candidateLabelVersion) + " · " + escapeHtml(manifest.manifestHash) + "</p></div></div>",
-    '<span class="status-pill ' + (statusReady ? "ready" : "blocked") + '">' + manifest.status + "</span></div>",
-    '<table class="data-table" aria-label="标签版本人工复核决策"><thead><tr><th>Target</th><th>Frame</th><th>决策</th><th>路由</th><th>依据</th></tr></thead><tbody>' + rows + "</tbody></table>",
-    "</div>",
-    '<aside><div class="panel" style="margin-bottom:16px"><div class="panel-head"><span class="panel-title">放行门禁</span><span class="panel-meta">' + manifest.counts.unresolved + " unresolved</span></div><div class=\"panel-body\"><div class=\"blocker-list\">" + blockerHtml + "</div></div></div>",
-    '<div class="panel"><div class="panel-head"><span class="panel-title">Release manifest</span><span class="panel-meta">JSON · deterministic</span></div>',
-    '<pre class="manifest-code">' + escapeHtml(JSON.stringify(manifest, null, 2)) + "</pre></div></aside></section>",
+    '<div class="page-head"><div><div class="eyebrow">Use qualification</div><h1>Label Quality Manifest</h1><p class="page-description">用途与快照双重限定；不是通用“数据已正确”证明。</p></div><div class="button-row">' + (manifest.status === "AWAITING_SIGNOFF" ? '<button class="button primary" data-signoff>QA Owner 签署</button>' : '') + '<button class="button" data-download="manifest">下载 Manifest</button><button class="button" data-download="receipt">导出 SceneQL 回执</button></div></div>',
+    '<section class="qualification-grid"><div class="panel"><div class="qualification-hero"><div class="qualification-state ' + (ready ? "ready" : "blocked") + '"><span>' + (ready ? "✓" : "!") + '</span><div><h2>' + escapeHtml(manifest.status) + '</h2><p>' + escapeHtml(manifest.intendedUse) + ' · ' + escapeHtml(shortDigest(manifest.manifestHash)) + '</p></div></div><span class="status-pill ' + (ready ? "ready" : "blocked") + '">' + escapeHtml(receipt.status) + '</span></div>',
+    '<div class="qualification-facts"><div><span>Source snapshot</span><code>' + escapeHtml(shortDigest(manifest.sourceSnapshotDigest)) + '</code></div><div><span>Reviewed snapshot</span><code>' + escapeHtml(shortDigest(manifest.reviewedSnapshotDigest)) + '</code></div><div><span>Qualified for</span><strong>' + escapeHtml(manifest.qualifiedForUses.join(", ") || "none") + '</strong></div><div><span>Sign-off</span><strong>' + escapeHtml(manifest.signOffStatus ?? "—") + '</strong></div></div>',
+    '<table class="data-table"><thead><tr><th>Issue cluster</th><th>Decision</th><th>Route</th><th>Recheck</th></tr></thead><tbody>' + state.evaluation.issueClusters.filter((item) => item.blocking).map((cluster) => { const decision = state.decisions.get(cluster.id); const recheck = state.rechecks.get(cluster.id); return '<tr><td><strong>' + escapeHtml(cluster.id) + '</strong><span>' + escapeHtml(cluster.title) + '</span></td><td>' + escapeHtml(decision ? DECISION_LABELS[decision.decision] : "待处理") + '</td><td>' + escapeHtml(decision ? ROUTE_LABELS[decision.route] : cluster.recommendedRoute) + '</td><td>' + escapeHtml(recheck?.result?.toUpperCase() ?? "—") + '</td></tr>'; }).join("") + '</tbody></table></div>',
+    '<aside><div class="panel blocker-panel"><div class="panel-head"><span class="panel-title">Qualification gate</span><span class="panel-meta">' + unresolved.length + ' unresolved</span></div><div class="panel-body">' + (unresolved.length ? unresolved.map((item) => '<div class="blocker-item"><strong>' + escapeHtml(item.clusterId ?? "snapshot") + '</strong><span>' + escapeHtml(item.reason) + '</span></div>').join("") : manifest.status === "AWAITING_SIGNOFF" ? '<div class="gate-check"><strong>等待 QA Owner 签署</strong><span>决定、返修与复检已完成；尚未授予用途资格</span></div>' : '<div class="gate-check pass"><strong>用途资格已签署</strong><span>仅对当前 intendedUse 与 snapshot 有效</span></div>') + '</div></div><div class="panel receipt-panel"><div class="panel-head"><span class="panel-title">SceneQL receipt</span><span class="panel-meta">data-supply-result/1.0</span></div><pre>' + escapeHtml(JSON.stringify(receipt, null, 2)) + '</pre></div></aside></section>',
   ].join("");
   return pageShell(content);
 }
 
 function render() {
   if (!state.evaluation) {
-    root.innerHTML = '<div class="loading" role="status" aria-live="polite">正在载入公开 Demo 批次…</div>';
+    root.innerHTML = '<div class="loading">正在载入 QA 工单…</div>';
     return;
   }
-  if (state.view === "review") root.innerHTML = renderReview();
-  else if (state.view === "release") root.innerHTML = renderRelease();
-  else root.innerHTML = renderQueue();
+  root.innerHTML = state.view === "review" ? renderReview() : state.view === "qualification" ? renderQualification() : renderOrder();
   bindEvents();
 }
 
@@ -388,118 +261,91 @@ function showToast(message, error = false) {
   document.querySelector(".toast")?.remove();
   const toast = document.createElement("div");
   toast.className = "toast" + (error ? " error" : "");
-  toast.setAttribute("role", error ? "alert" : "status");
-  toast.setAttribute("aria-live", error ? "assertive" : "polite");
   toast.textContent = message;
+  toast.setAttribute("role", error ? "alert" : "status");
   document.body.append(toast);
-  window.setTimeout(() => toast.remove(), 2800);
+  setTimeout(() => toast.remove(), 3000);
 }
 
-async function requestAssistant(target) {
-  state.assistantLoading.add(target.id);
+async function requestAssistant() {
+  const cluster = activeCluster();
+  const context = clusterContext(cluster);
+  state.assistantLoading.add(cluster.id);
   render();
   try {
-    const response = await fetch("/api/assistant", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        batchId: state.evaluation.batch.id,
-        target: {
-          id: target.id,
-          trackId: target.trackId,
-          class: target.class,
-          frameId: target.frameId,
-          evidence: target.evidence,
-        },
-      }),
-    });
-    if (!response.ok) throw new Error("assistant endpoint unavailable");
+    const response = await fetch("/api/assistant", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ context }) });
+    if (!response.ok) throw new Error("assistant unavailable");
     const result = await response.json();
-    const validation = validateAssistantResponse(result, target);
-    if (!validation.valid) throw new Error("assistant cited evidence outside the allowed set");
-    state.assistant.set(target.id, result);
-    state.aiStatus = {
-      mode: result.mode ?? "mock",
-      transport: result.transport ?? "server",
-      requestedMode: result.mode ?? state.aiStatus.requestedMode,
-      remoteReady: (result.mode ?? "mock") === "remote",
-    };
+    if (!validateClusterAssistantResponse(result, context).valid) throw new Error("closed citation violation");
+    state.assistant.set(cluster.id, result);
+    state.aiStatus = { mode: result.mode, transport: result.transport, requestedMode: result.mode, remoteReady: result.mode === "remote" };
   } catch {
-    state.assistant.set(target.id, createMockAssistant(target));
-    state.aiStatus = {
-      ...state.aiStatus,
-      mode: "mock",
-      transport: "client-deterministic",
-      remoteReady: false,
-    };
-    showToast("AI 服务调用失败；当前结果来自确定性 Mock，未计为远程成功。", true);
+    state.assistant.set(cluster.id, createMockClusterAssistant(context));
+    state.aiStatus = { ...state.aiStatus, mode: "mock", transport: "client-deterministic", remoteReady: false };
+    showToast("M3 调用失败；已明确切换为确定性 Mock，不计为真实模型通过。", true);
   } finally {
-    state.assistantLoading.delete(target.id);
+    state.assistantLoading.delete(cluster.id);
     render();
   }
 }
 
-function downloadManifest() {
-  const manifest = createReleaseManifest(state.evaluation, state.decisions);
-  const blob = new Blob([JSON.stringify(manifest, null, 2) + "\n"], { type: "application/json" });
+function downloadJson(kind) {
+  const manifest = currentManifest();
+  const value = kind === "receipt" ? createSceneQLReceipt(manifest) : manifest;
+  const blob = new Blob([JSON.stringify(value, null, 2) + "\n"], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = state.evaluation.batch.candidateLabelVersion + "-qa-manifest.json";
-  document.body.append(link);
+  link.download = kind === "receipt" ? `${manifest.supplyRequestId}-labelguard-result.json` : `${manifest.workOrderId}-quality-manifest.json`;
   link.click();
-  link.remove();
   URL.revokeObjectURL(url);
 }
 
 function bindEvents() {
-  document.querySelectorAll("[data-nav]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.view = button.dataset.nav;
-      render();
-    });
-  });
-  document.querySelectorAll("[data-open-target]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedId = button.dataset.openTarget;
-      state.view = "review";
-      render();
-    });
-  });
-  document.querySelectorAll("[data-select-target]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedId = button.dataset.selectTarget;
-      render();
-    });
-  });
-  document.querySelectorAll("[data-decision]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const target = state.evaluation.targets.find((item) => item.id === state.selectedId);
+  document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => { state.view = button.dataset.nav; render(); }));
+  document.querySelectorAll("[data-select-cluster]").forEach((button) => button.addEventListener("click", () => { state.selectedClusterId = button.dataset.selectCluster; state.selectedTargetId = null; render(); }));
+  document.querySelectorAll("[data-select-target]").forEach((button) => button.addEventListener("click", () => { state.selectedTargetId = button.dataset.selectTarget; render(); }));
+  document.querySelectorAll("[data-decision]").forEach((button) => button.addEventListener("click", () => {
+    const cluster = activeCluster();
+    try {
       const reason = document.querySelector("#decision-reason")?.value ?? "";
-      try {
-        const decision = createDecision(target, button.dataset.decision, reason);
-        state.decisions.set(target.id, decision);
-        persistDecisions();
-        showToast("已记录：" + DECISION_LABELS[decision.decision] + " → " + ROUTE_LABELS[decision.route]);
-        render();
-      } catch (error) {
-        showToast(error.message, true);
-      }
-    });
+      const decision = createReviewDecision(cluster, button.dataset.decision, reason, state.evaluation);
+      state.decisions.set(cluster.id, decision);
+      state.remediations.delete(cluster.id);
+      state.rechecks.delete(cluster.id);
+      state.signOff = null;
+      if (decision.decision === "confirmed_issue") state.remediations.set(cluster.id, createRemediationTask(cluster, decision, state.evaluation));
+      persistState();
+      showToast(`已记录：${DECISION_LABELS[decision.decision]} → ${ROUTE_LABELS[decision.route]}`);
+      render();
+    } catch (error) { showToast(error.message, true); }
+  }));
+  document.querySelector("[data-demo-recheck]")?.addEventListener("click", () => {
+    const cluster = activeCluster();
+    try {
+      const record = createRecheckRecord(state.remediations.get(cluster.id), state.payload.demoRecheck.snapshotDigest, "passed", { demoSyntheticRecheck: true });
+      state.rechecks.set(cluster.id, record);
+      state.signOff = null;
+      persistState();
+      showToast("已记录合成 Demo 复检回执；生产环境必须验证真实新快照。");
+      render();
+    } catch (error) { showToast(error.message, true); }
   });
-  document.querySelector("[data-assistant-refresh]")?.addEventListener("click", () => {
-    const target = state.evaluation.targets.find((item) => item.id === state.selectedId);
-    requestAssistant(target);
+  document.querySelector("[data-assistant-refresh]")?.addEventListener("click", requestAssistant);
+  document.querySelector("[data-signoff]")?.addEventListener("click", () => {
+    try {
+      const manifest = currentManifest();
+      state.signOff = createQualificationSignOff(
+        state.evaluation,
+        manifest.reviewedSnapshotDigest,
+        manifest.reviewBundleHash,
+      );
+      persistState();
+      showToast("QA Owner 已签署：仅对当前用途与复检快照有效。");
+      render();
+    } catch (error) { showToast(error.message, true); }
   });
-  document.querySelector("[data-download-manifest]")?.addEventListener("click", downloadManifest);
-  document.querySelector("[data-reset]")?.addEventListener("click", () => {
-    state.decisions.clear();
-    state.assistant.clear();
-    localStorage.removeItem(STORAGE_KEY);
-    state.selectedId = state.evaluation.targets.find((item) => item.reviewRequired)?.id;
-    showToast("演示状态已重置。");
-    render();
-  });
+  document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => downloadJson(button.dataset.download)));
 }
 
 async function loadAiStatus() {
@@ -507,36 +353,26 @@ async function loadAiStatus() {
     const response = await fetch("/api/status", { headers: { accept: "application/json" } });
     if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) return;
     const status = await response.json();
-    state.aiStatus = {
-      mode: status.mode ?? "mock",
-      transport: status.transport ?? "server",
-      requestedMode: status.requestedMode ?? status.mode ?? "mock",
-      remoteReady: status.remoteReady ?? status.mode === "remote",
-    };
+    state.aiStatus = { mode: status.mode ?? "mock", transport: status.transport ?? "server", requestedMode: status.requestedMode ?? "mock", remoteReady: Boolean(status.remoteReady) };
   } catch {
-    state.aiStatus = {
-      mode: "mock",
-      transport: "client-deterministic",
-      requestedMode: "mock",
-      remoteReady: false,
-    };
+    state.aiStatus = { mode: "mock", transport: "client-deterministic", requestedMode: "mock", remoteReady: false };
   }
 }
 
 async function init() {
-  root.innerHTML = '<div class="loading" role="status" aria-live="polite">正在载入公开 Demo 批次…</div>';
   try {
     const response = await fetch("/demo/labelguard-batch-v1.json");
-    if (!response.ok) throw new Error("公开 Demo 批次加载失败（HTTP " + response.status + "）");
+    if (!response.ok) throw new Error(`公开工单加载失败（HTTP ${response.status}）`);
     state.payload = await response.json();
-    state.evaluation = evaluateBatch(state.payload);
-    restoreDecisions();
-    state.selectedId = state.evaluation.targets.find((item) => item.reviewRequired)?.id;
+    state.evaluation = evaluateWorkOrder(state.payload);
+    if (state.evaluation.preflight.status !== "READY") throw new Error(`工单 Preflight：${state.evaluation.preflight.status}`);
+    restoreState();
+    state.selectedClusterId = state.evaluation.issueClusters[0]?.id;
+    state.selectedTargetId = state.evaluation.issueClusters[0]?.targetIds[0];
     await loadAiStatus();
     render();
   } catch (error) {
-    root.innerHTML = '<div class="loading" role="alert">载入失败：' + escapeHtml(error.message) + '<button class="button" type="button" data-retry-load>重新载入</button></div>';
-    root.querySelector("[data-retry-load]")?.addEventListener("click", init);
+    root.innerHTML = '<div class="loading" role="alert">' + escapeHtml(error.message) + '</div>';
   }
 }
 
