@@ -1,37 +1,212 @@
-# LabelGuard
+<div align="center">
+  <p><strong>LABELGUARD</strong><br /><sub>A use-specific quality gate for autonomous-driving labels</sub></p>
+  <h1>Qualify the snapshot—not the promise.</h1>
+  <p>
+    Bind deterministic checks, reviewable evidence, remediation and human sign-off<br />
+    to one immutable dataset candidate and one declared downstream use.
+  </p>
+  <p>
+    <a href="https://autoinsight-labelguard.pages.dev/"><strong>◉ OPEN LIVE DEMO</strong></a>
+    &nbsp;·&nbsp;
+    <a href="README.zh-CN.md"><strong>中文说明</strong></a>
+    &nbsp;·&nbsp;
+    <a href="docs/product-solution.md">Product solution</a>
+    &nbsp;·&nbsp;
+    <a href="docs/validation-report.md">Validation report</a>
+  </p>
+  <p>
+    <code>DATA_QA</code>&nbsp;
+    <code>IMMUTABLE SNAPSHOT</code>&nbsp;
+    <code>ISSUECLUSTER</code>&nbsp;
+    <code>HUMAN SIGN-OFF</code>
+  </p>
+</div>
 
-[**▶ Live Demo**](https://autoinsight-labelguard.pages.dev/) · [中文说明](README.zh-CN.md)
+<table>
+  <tr>
+    <td align="center"><strong>3</strong><br /><sub>real nuScenes frames</sub></td>
+    <td align="center"><strong>9</strong><br /><sub>target observations</sub></td>
+    <td align="center"><strong>5</strong><br /><sub>declared synthetic QA perturbations</sub></td>
+    <td align="center"><strong>3</strong><br /><sub>reviewable IssueClusters</sub></td>
+    <td align="center"><strong>1</strong><br /><sub>qualified use: simulation seed</sub></td>
+  </tr>
+</table>
 
-Use-specific label quality qualification gate for autonomous-driving dataset candidates.
+## Product interface
 
-LabelGuard is the `DATA_QA` execution route in the SceneQL data-supply workflow. It does not claim that a dataset is universally “correct.” It answers a narrower, auditable question: **is this immutable candidate snapshot qualified for the declared downstream use?**
+<p align="center">
+  <a href="https://autoinsight-labelguard.pages.dev/">
+    <picture>
+      <img src="docs/assets/labelguard-1440x900.png" width="100%" alt="LabelGuard v2 IssueCluster review at 1440 by 900 showing a real nuScenes frame, candidate 2D and 3D-projection overlays, an optional demo reference, a deterministic Mock second opinion, evidence IDs and human disposition controls" />
+    </picture>
+  </a>
+</p>
 
-## Workflow
+<p align="center"><sub>Actual 1440 × 900 capture of the online v2 IssueCluster review: real nuScenes media, candidate 2D / candidate 3D projection, optional demo reference and deterministic Mock remain visibly separated beside evidence-linked human disposition controls.</sub></p>
 
-1. receive a versioned `data-supply-task/1.0` from SceneQL;
-2. preflight the `label-qa-work-order/1.0`, intended use, quality profile and snapshot digest;
-3. run deterministic candidate-label checks and group repeated findings into `IssueCluster` objects;
-4. review the actual target and track evidence against closed spec-clause IDs;
-5. route confirmed issues to annotation rework, expert arbitration, data-readiness repair or more evidence;
-6. recheck a new immutable snapshot after remediation;
-7. sign a use-specific `label-quality-manifest/1.0` and return `data-supply-result/1.0` to SceneQL.
+## The decision LabelGuard owns
 
-Missing required work-order fields return `NEEDS_CLARIFICATION`. A changed dataset digest returns `SNAPSHOT_CHANGED`; previous human decisions cannot be reused.
+LabelGuard is the `DATA_QA` execution route in the SceneQL data-supply workflow. It does **not** claim that a dataset is universally “correct,” replace an annotation platform or treat a vision model as ground truth. It answers one narrower, operationally useful question:
 
-## Public demo
+> **Is this exact candidate snapshot qualified for this declared downstream use, under this versioned Quality Profile?**
 
-The public fixture uses three adjacent nuScenes v1.0-mini `scene-0061` `CAM_FRONT` keyframes and nine target observations. It keeps four layers separate:
+The answer is useful to four roles at once: the QA Owner gets an auditable sign-off gate; the data-production manager gets consolidated remediation scope; the supplier gets evidence-linked instructions; and the data consumer gets a machine-readable, use-limited receipt.
 
-| Layer | Meaning |
-| --- | --- |
-| Real media | Downsampled nuScenes camera frames |
-| Candidate annotation | Production-like `candidate2d`, `candidate3d` and `candidateProjection2d` fields |
-| Demo reference | Optional official nuScenes annotation, marked `demoOnly`; not required by the production schema |
-| Second opinion | Deterministic Mock prediction; missing or disagreeing output does not block this Quality Profile |
+## The quality gate
 
-Five deterministic QA perturbations are explicitly marked `synthetic`. Two repeated projection findings and two repeated dimension findings form systematic issue clusters. One Mock class disagreement remains informational.
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <sub>01 · BIND</sub><br />
+      <strong>Declare the decision</strong><br />
+      <sub>intended use · Quality Profile · scope · source SHA-256</sub>
+    </td>
+    <td align="center" width="25%">
+      <sub>02 · DETECT</sub><br />
+      <strong>Run deterministic QA</strong><br />
+      <sub>candidate geometry · projection · track continuity · sensor support</sub>
+    </td>
+    <td align="center" width="25%">
+      <sub>03 · DECIDE</sub><br />
+      <strong>Review IssueClusters</strong><br />
+      <sub>target / track evidence · closed spec clauses · human decision</sub>
+    </td>
+    <td align="center" width="25%">
+      <sub>04 · RELEASE</sub><br />
+      <strong>Recheck and sign</strong><br />
+      <sub>new snapshot · remediation trace · QA Owner · manifest + callback</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">work-order preflight<br /><strong>READY</strong></td>
+    <td align="center">repeated findings<br /><strong>ISSUECLUSTER</strong></td>
+    <td align="center">resolved on a new digest<br /><strong>AWAITING_SIGNOFF</strong></td>
+    <td align="center">explicit human approval<br /><strong>QUALIFIED</strong></td>
+  </tr>
+</table>
 
-The demo Quality Profile is valid only for `simulation_seed`. The one-click recheck receipt is also explicitly synthetic; a production deployment must verify a real corrected snapshot.
+<table>
+  <tr>
+    <td align="center"><strong>↳ FAIL CLOSED</strong><br /><sub>missing work-order field → <code>NEEDS_CLARIFICATION</code></sub></td>
+    <td align="center"><strong>↳ INVALIDATE STALE WORK</strong><br /><sub>digest changed → <code>SNAPSHOT_CHANGED</code>; previous decisions cannot be reused</sub></td>
+    <td align="center"><strong>↳ LIMIT THE CLAIM</strong><br /><sub>a manifest applies only to its signed snapshot, use and Quality Profile</sub></td>
+  </tr>
+</table>
+
+## Real evidence, frame by frame
+
+The public fixture is built from three adjacent nuScenes v1.0-mini `scene-0061` `CAM_FRONT` keyframes. These are real road-collected images; the controlled QA perturbations used to exercise the workflow are separately marked as synthetic.
+
+<table>
+  <tr>
+    <td width="33%"><img src="public/demo/nuscenes-scene-0061-cam-front-14.jpg" width="100%" alt="nuScenes scene-0061 CAM_FRONT keyframe 14 approaching a road-work junction" /></td>
+    <td width="33%"><img src="public/demo/nuscenes-scene-0061-cam-front-15.jpg" width="100%" alt="nuScenes scene-0061 CAM_FRONT keyframe 15 beside a construction zone" /></td>
+    <td width="33%"><img src="public/demo/nuscenes-scene-0061-cam-front-16.jpg" width="100%" alt="nuScenes scene-0061 CAM_FRONT keyframe 16 continuing past a construction vehicle" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>KEYFRAME 14 · CAM_FRONT</sub></td>
+    <td align="center"><sub>KEYFRAME 15 · CAM_FRONT</sub></td>
+    <td align="center"><sub>KEYFRAME 16 · CAM_FRONT</sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Derived from nuScenes v1.0-mini for a non-commercial demonstration. Dataset terms and attribution are preserved in <a href="public/demo/LICENSE">public/demo/LICENSE</a>.</sub></p>
+
+## Evidence is layered, not blended
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">Layer</th>
+      <th align="left">Source</th>
+      <th align="left">Role in the review</th>
+      <th align="center">May decide qualification?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>🟢 <strong>Real media</strong></td>
+      <td>nuScenes-derived camera frames</td>
+      <td>Observable scene evidence</td>
+      <td align="center"><strong>No</strong></td>
+    </tr>
+    <tr>
+      <td>🟠 <strong>Candidate annotation</strong></td>
+      <td><code>candidate2d</code>, <code>candidate3d</code>, candidate projection</td>
+      <td>The production-like object under QA</td>
+      <td align="center"><strong>No</strong></td>
+    </tr>
+    <tr>
+      <td>🔵 <strong>Demo reference</strong></td>
+      <td>Optional official nuScenes annotation, <code>demoOnly</code></td>
+      <td>Explains the fixture; production schema does not require it</td>
+      <td align="center"><strong>No</strong></td>
+    </tr>
+    <tr>
+      <td>🟣 <strong>Second opinion</strong></td>
+      <td>Deterministic Mock in the public build</td>
+      <td>Informational comparison; missing output does not block this profile</td>
+      <td align="center"><strong>No</strong></td>
+    </tr>
+    <tr>
+      <td>⚪ <strong>Human decision</strong></td>
+      <td>QA Owner + evidence-linked review bundle</td>
+      <td>Confirms disposition and explicitly signs the qualified use</td>
+      <td align="center"><strong>Yes</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+## Snapshot and sign-off invariants
+
+<table>
+  <tr>
+    <td align="center"><strong>S₀ · CANDIDATE</strong><br /><sub>canonical dataset SHA-256</sub></td>
+    <td align="center">→<br /><sub>review</sub></td>
+    <td align="center"><strong>DECISION BUNDLE</strong><br /><sub>IssueClusters · evidence IDs · spec-clause IDs</sub></td>
+    <td align="center">→<br /><sub>remediate</sub></td>
+    <td align="center"><strong>S₁ · CORRECTED</strong><br /><sub>new digest + scoped target diff</sub></td>
+    <td align="center">→<br /><sub>sign</sub></td>
+    <td align="center"><strong>MANIFEST</strong><br /><sub>S₁ + intended use + reviewer identity</sub></td>
+  </tr>
+</table>
+
+- The work-order digest must match the computed candidate content digest before QA starts.
+- Human decisions are bound to `S₀`; they are never silently carried across snapshots.
+- A valid recheck requires a **new canonical SHA-256** and a target-level mapping to the remediation scope.
+- Passing deterministic checks produces `AWAITING_SIGNOFF`, not automatic qualification.
+- Any snapshot, decision or review-bundle change invalidates the previous signature.
+
+## Where AI helps—and where it stops
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>AI-assisted</h3>
+      <ul>
+        <li>Compress evidence from one IssueCluster into a short summary</li>
+        <li>Map supplied evidence to allowed, closed-set spec-clause IDs</li>
+        <li>Draft one remediation scope and one recheck plan</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <h3>Deterministic or human-owned</h3>
+      <ul>
+        <li>Measurements, thresholds, projections and track checks</li>
+        <li>Label truth, severity disposition and remediation approval</li>
+        <li>Snapshot mutation, use qualification and QA Owner sign-off</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+The public site always uses a reproducible deterministic Mock and labels it as such. Optional MiniMax-M3 runs only on the server, receives structured IssueCluster context rather than images, and must cite supplied evidence and clause IDs. Invalid JSON, missing citations or invented IDs fail closed.
+
+## Demo scope and honest limits
+
+Five explicitly declared synthetic perturbations yield two systematic blocking clusters and one informational Mock-disagreement cluster. The demo exercises `simulation_seed` qualification only. Its one-click corrected-snapshot receipt is also explicitly synthetic; a production deployment must import and verify a real corrected snapshot.
+
+This fixture demonstrates the workflow, evidence linkage, snapshot invariants and product contracts. It does **not** validate production thresholds, sampling strategy, model accuracy or commercial dataset rights.
 
 ## Run locally
 
@@ -42,7 +217,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:4175`.
+Open <http://127.0.0.1:4175>.
 
 Production-style server:
 
@@ -51,30 +226,33 @@ npm run build
 npm run serve
 ```
 
-Open `http://127.0.0.1:4176`.
+Open <http://127.0.0.1:4176>.
 
-## Deploy as a static public demo
+## Verify the product contract
 
-The hosted demo is intentionally a client-only, deterministic Mock. Build it without an environment file or remote-AI mode:
+```bash
+npm run check
+```
+
+The suite covers work-order preflight, stale-snapshot rejection, systematic clustering, independence from demo GT, non-blocking missing-model output, remediation and recheck state, true SHA-256 manifests, SceneQL task/result contracts, public-data provenance and a production build.
+
+<details>
+  <summary><strong>Deploy the static public demo</strong></summary>
+  <br />
+  <p>The hosted demo is intentionally client-only and deterministic. Build without an environment file or remote-AI mode:</p>
 
 ```bash
 npm ci
 npm run check
 ```
 
-Publish `dist/` as the Cloudflare Pages output directory. The repository's `public/_headers` and `public/_redirects` are copied into the build automatically. On static hosting, unavailable `/api/*` requests fail closed and the UI explicitly reports `Mock · deterministic`; no API key, MiniMax-M3 endpoint or server runtime is required or shipped.
+  <p>Publish <code>dist/</code> as the Cloudflare Pages output directory. <code>public/_headers</code> and <code>public/_redirects</code> are copied into the build. On static hosting, unavailable <code>/api/*</code> calls fail closed; no API key, MiniMax-M3 endpoint or server runtime is shipped.</p>
+</details>
 
-## Verification
-
-```bash
-npm run check
-```
-
-The suite checks work-order preflight, stale snapshot rejection, systematic clustering, production-schema independence from demo GT, non-blocking missing model output, remediation/recheck state, true SHA-256 manifests, SceneQL task/result contracts, public-data provenance and a production build.
-
-## MiniMax-M3 mode
-
-Public mode is a deterministic Mock. Optional remote mode is server-only and locked to `MiniMax-M3`:
+<details>
+  <summary><strong>Run the optional MiniMax-M3 assistant</strong></summary>
+  <br />
+  <p>Remote mode is locked to <code>MiniMax-M3</code> and remains server-only:</p>
 
 ```bash
 LABELGUARD_ENV_FILE=/path/to/authorized.env \
@@ -82,11 +260,7 @@ LABELGUARD_AI_MODE=remote \
 npm run serve
 ```
 
-The authorized environment defines `OPENAI_API_KEY` and `OPENAI_BASE_URL`. No credential enters the browser bundle or status response.
-
-MiniMax-M3 only drafts an IssueCluster summary, a remediation scope and a recheck plan. Its response must cite the supplied evidence IDs and spec-clause IDs; invalid JSON, missing citations or invented IDs fail closed. Deterministic code retains measurements, thresholds, routes, snapshot checks and qualification decisions.
-
-Credential-safe smoke:
+  <p>The authorized environment defines <code>OPENAI_API_KEY</code> and <code>OPENAI_BASE_URL</code>. No credential enters the browser bundle or status response.</p>
 
 ```bash
 LABELGUARD_ENV_FILE=/path/to/authorized.env \
@@ -94,35 +268,47 @@ LABELGUARD_AI_MODE=remote \
 npm run test:llm
 ```
 
-The smoke prints only the model name, issue-cluster ID, citation counts and schema result.
+  <p>The credential-safe smoke prints only the model name, IssueCluster ID, citation counts and schema result.</p>
+</details>
 
-## Cross-product contracts
+<details>
+  <summary><strong>Inspect cross-product contracts</strong></summary>
+  <br />
 
-- input: `data-supply-task/1.0` / `TASK-LG-WZ-001`;
-- provider spec: `label-qa-work-order/1.0`;
-- manifest: `label-quality-manifest/1.0`;
-- callback: `data-supply-result/1.0` with `provider=LabelGuard`.
+  <table>
+    <tr><td><strong>Input</strong></td><td><code>data-supply-task/1.0</code> · <code>TASK-LG-WZ-001</code></td></tr>
+    <tr><td><strong>Provider spec</strong></td><td><code>label-qa-work-order/1.0</code></td></tr>
+    <tr><td><strong>Manifest</strong></td><td><code>label-quality-manifest/1.0</code></td></tr>
+    <tr><td><strong>Callback</strong></td><td><code>data-supply-result/1.0</code> · <code>provider=LabelGuard</code></td></tr>
+  </table>
 
-Canonical constructors and validators are exported from [`src/domain.mjs`](src/domain.mjs). The common demo references `DEM-WZ-001@1.0` and the exact three nuScenes scene-0061 sample tokens shared with SceneQL.
+  <p>Canonical constructors and validators are exported from <a href="src/domain.mjs"><code>src/domain.mjs</code></a>. The common demo references <code>DEM-WZ-001@1.0</code> and the same three nuScenes sample tokens used by SceneQL.</p>
+</details>
 
-## Data and license
-
-nuScenes-derived assets remain subject to CC BY-NC-SA 4.0 and the additional nuScenes Dataset Terms; see [`public/demo/LICENSE`](public/demo/LICENSE). This repository does not grant commercial dataset rights.
-
-Regenerate the derived fixture after obtaining nuScenes v1.0-mini under its terms:
+<details>
+  <summary><strong>Data, license and fixture regeneration</strong></summary>
+  <br />
+  <p>nuScenes-derived assets remain subject to CC BY-NC-SA 4.0 and the additional nuScenes Dataset Terms; see <a href="public/demo/LICENSE"><code>public/demo/LICENSE</code></a>. This repository does not grant commercial dataset rights.</p>
 
 ```bash
 python3 scripts/generate-nuscenes-demo.py \
   --dataset-root /path/to/nuscenes/dataset
 ```
+</details>
 
-## Project map
+<details>
+  <summary><strong>Repository map</strong></summary>
+  <br />
 
-- `src/domain.mjs` — work-order preflight, deterministic QA, clustering and qualification contracts
-- `src/assistant.mjs` — deterministic cluster Mock and closed-citation validator
-- `src/app.mjs` — work order, issue review and qualification UI
-- `server/` — static server and optional MiniMax-M3 endpoint
-- `public/demo/` — nuScenes-derived public fixture, task and license notice
-- `tests/` — domain, AI-boundary, provenance and cross-repo contract tests
+- [`src/domain.mjs`](src/domain.mjs) — work-order preflight, deterministic QA, clustering and qualification contracts
+- [`src/assistant.mjs`](src/assistant.mjs) — deterministic cluster Mock and closed-citation validator
+- [`src/app.mjs`](src/app.mjs) — work order, evidence review, remediation and qualification UI
+- [`server/`](server/) — static server and optional MiniMax-M3 endpoint
+- [`public/demo/`](public/demo/) — nuScenes-derived public fixture, task and license notice
+- [`tests/`](tests/) — domain, AI-boundary, provenance and cross-repository contract tests
+</details>
 
-Source code is available under the [MIT License](LICENSE).
+<p align="center">
+  <strong>Make the release claim smaller, clearer and auditable.</strong><br />
+  <sub>Source code is available under the <a href="LICENSE">MIT License</a>. Dataset assets retain their own terms.</sub>
+</p>
