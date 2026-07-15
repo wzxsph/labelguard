@@ -41,8 +41,7 @@ export function getAiConfig() {
   const requestedMode = String(process.env.LABELGUARD_AI_MODE ?? "mock").toLowerCase();
   const remoteReady = Boolean(
     process.env.OPENAI_API_KEY &&
-    process.env.OPENAI_BASE_URL &&
-    process.env.OPENAI_MODEL,
+    process.env.OPENAI_BASE_URL,
   );
   return {
     mode: requestedMode === "remote" && remoteReady ? "remote" : "mock",
@@ -50,6 +49,6 @@ export function getAiConfig() {
     remoteReady,
     apiKey: process.env.OPENAI_API_KEY,
     baseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-    model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
+    model: "MiniMax-M3",
   };
 }

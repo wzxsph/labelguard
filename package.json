@@ -1,15 +1,15 @@
 {
   "name": "labelguard",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Evidence-first annotation QA and release gate for autonomous-driving datasets.",
+  "description": "Use-specific label quality qualification gate for autonomous-driving dataset candidates.",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4175",
     "build": "vite build",
     "serve": "node server/index.mjs",
     "test:llm": "node scripts/live-llm-smoke.mjs",
-    "lint": "node --check src/app.mjs && node --check src/domain.mjs && node --check src/assistant.mjs && node --check server/index.mjs && node --check server/ai.mjs && node --check server/env.mjs && node --check scripts/live-llm-smoke.mjs",
+    "lint": "node --check src/app.mjs && node --check src/domain.mjs && node --check src/assistant.mjs && node --check server/index.mjs && node --check server/ai.mjs && node --check server/env.mjs && node --check scripts/live-llm-smoke.mjs && python3 -c \"import ast,pathlib; ast.parse(pathlib.Path('scripts/generate-nuscenes-demo.py').read_text())\"",
     "test": "node --test",
     "check": "npm run lint && npm test && npm run build"
   },

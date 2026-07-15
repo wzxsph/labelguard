@@ -1,146 +1,1497 @@
 {
-  "schemaVersion": "labelguard.demo.v1",
+  "schemaVersion": "labelguard.demo.v3",
   "batch": {
-    "id": "BATCH-LG-PUBLIC-001",
-    "name": "Urban Junction Multi-Sensor QA Demo",
-    "source": "LabelGuard public synthetic fixture",
-    "dataNature": "synthetic",
-    "license": "CC0-1.0",
+    "id": "BATCH-LG-NUSCENES-0061",
+    "name": "nuScenes scene-0061 CAM_FRONT QA Demo",
+    "source": "nuScenes v1.0-mini scene-0061",
+    "dataNature": "real_media_and_official_human_gt_with_synthetic_qa_perturbations",
+    "license": "CC-BY-NC-SA-4.0-plus-nuScenes-Dataset-Terms",
+    "licenseUrl": "https://www.nuscenes.org/terms-of-use",
     "publicRelease": true,
-    "task": "multi_sensor_3d_detection",
-    "sensorProfile": "camera_lidar_demo_v1",
+    "task": "multi_sensor_3d_annotation_qa",
+    "sensorProfile": "nuscenes_cam_front_v1",
     "frameSize": {
       "width": 1280,
       "height": 720
     },
-    "baseLabelVersion": "labels-demo-v1.2.0",
-    "candidateLabelVersion": "labels-demo-v1.3.0-rc1",
+    "baseLabelVersion": "nuscenes-v1.0-mini-human-gt",
+    "candidateLabelVersion": "labelguard-demo-0061-qa-rc1",
     "createdAt": "2026-07-15T08:30:00.000Z",
-    "annotationSchema": "openlabel-style-demo-v1",
-    "digestMethod": "sha256-canonical-json-without-batch.contentDigest",
-    "contentDigest": "sha256:91da0a9c124df9784bff520348ec1364ac7337bdaf207ddffb62eba8d6e92640",
-    "notice": "公开合成演示数据，不代表道路实采 GT 或生产模型性能。"
+    "annotationSchema": "labelguard-nuscenes-derived-v3",
+    "digestMethod": "sha256-canonical-dataset-candidate-without-batch.contentDigest-and-work-order",
+    "notice": "真实 nuScenes CAM_FRONT 图像与官方 human 3D GT 投影；所有 QA 扰动和模型候选均为确定性合成演示，不代表真实标注错误或模型性能。",
+    "layers": {
+      "media": "real_nuscenes_camera_keyframes_downsampled",
+      "demoReferenceAnnotation": "optional_demo_only_official_nuscenes_annotation",
+      "candidateAnnotation": "human_gt_baseline_plus_explicit_synthetic_qa_perturbations",
+      "modelCandidate": "deterministic_mock_not_real_model_inference"
+    },
+    "selectedScene": {
+      "name": "scene-0061",
+      "sceneToken": "cc8c0bf57f984915a77078b10eb33198",
+      "sampleTokens": [
+        "2afb9d32310e4546a71cbe432911eca2",
+        "cd21dbfc3bd749c7b10a5c42562e0c42",
+        "88449a5cb1644a199c1c11f6ac034867"
+      ],
+      "instanceTokens": [
+        "c1958768d48640948f6053d04cffd35b",
+        "e3c5b72c12c34c85aac247734ad83bef",
+        "71603dd1a2ba4e9daf095535e38310ac"
+      ]
+    },
+    "contentDigest": "sha256:06ac8a2853582d2852dec3084eb01ad243af9af54d9dd52dc06dd8cbd006cb53"
   },
   "frames": [
     {
-      "id": "FRAME-000184",
+      "id": "NS-FRAME-14",
       "timestampMs": 0,
-      "image": "/demo/frame-000184.svg",
-      "egoSpeedMps": 7.4,
+      "image": "/demo/nuscenes-scene-0061-cam-front-14.jpg",
+      "egoSpeedMps": 5.158,
+      "source": {
+        "dataset": "nuScenes v1.0-mini",
+        "sceneName": "scene-0061",
+        "sampleToken": "2afb9d32310e4546a71cbe432911eca2",
+        "sampleDataToken": "5941e77ca4bd478e99e17114ca8759ab",
+        "calibratedSensorToken": "1d31c729b073425e8e0202c5c6e66ee1",
+        "egoPoseToken": "5941e77ca4bd478e99e17114ca8759ab",
+        "channel": "CAM_FRONT",
+        "sourceFilename": "samples/CAM_FRONT/n015-2018-07-24-11-22-45+0800__CAM_FRONT__1532402934662484.jpg",
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "derivedMediaSha256": "sha256:df99d43197ac44ec0b538e9d3ef3e35377156be7f5990ad2a518d920de5d99ef",
+        "derivation": "RGB resize to 1280x720, Lanczos, progressive JPEG quality 86",
+        "egoSpeedMethod": "planar_difference_of_camera_timestamp_ego_poses"
+      },
       "targets": [
         {
-          "id": "TG-P07-184",
-          "trackId": "TRACK-P07",
-          "class": "pedestrian",
-          "attributes": ["moving", "partially_occluded"],
-          "box2d": {"x": 765, "y": 282, "width": 44, "height": 118},
-          "projection2d": {"x": 768, "y": 286, "width": 41, "height": 111},
-          "box3d": {"length": 0.7, "width": 0.6, "height": 1.72, "yaw": 1.48},
-          "lidarPoints": 18,
-          "velocityMps": 1.2,
-          "modelCandidate": {"class": "pedestrian", "score": 0.91, "box2d": {"x": 768, "y": 285, "width": 42, "height": 112}}
+          "id": "NS-CAR-14",
+          "trackId": "NS-CAR-c1958768",
+          "class": "car",
+          "attributes": [
+            "vehicle.moving"
+          ],
+          "candidate2d": {
+            "x": 161.88,
+            "y": 324.12,
+            "width": 253.9,
+            "height": 169.29
+          },
+          "candidateProjection2d": {
+            "x": 161.88,
+            "y": 324.12,
+            "width": 253.9,
+            "height": 169.29
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 166.74,
+              "y": 330.9
+            },
+            {
+              "x": 292.94,
+              "y": 338.55
+            },
+            {
+              "x": 288.3,
+              "y": 457.84
+            },
+            {
+              "x": 161.88,
+              "y": 459.21
+            },
+            {
+              "x": 261.47,
+              "y": 324.12
+            },
+            {
+              "x": 415.78,
+              "y": 334.61
+            },
+            {
+              "x": 409.63,
+              "y": 488.54
+            },
+            {
+              "x": 254.92,
+              "y": 493.41
+            }
+          ],
+          "candidate3d": {
+            "length": 4.727,
+            "width": 1.907,
+            "height": 1.957,
+            "yaw": -1.010028,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 115,
+          "radarPoints": 2,
+          "candidateVelocityMps": 3.586,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "car",
+            "score": 0.92,
+            "box2d": {
+              "x": 166.45,
+              "y": 326.15,
+              "width": 245.01,
+              "height": 165.06
+            }
+          },
+          "qaPerturbation": null,
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "083c23464b7d4f2682d1b0c33996af5f",
+            "instanceToken": "c1958768d48640948f6053d04cffd35b",
+            "category": "vehicle.car",
+            "attributeNames": [
+              "vehicle.moving"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              400.204,
+              1116.512,
+              1.038
+            ],
+            "sizeWlh": [
+              1.907,
+              4.727,
+              1.957
+            ],
+            "rotationGlobalWxyz": [
+              0.8751677358970681,
+              0,
+              0,
+              -0.4838196296604754
+            ],
+            "numLidarPts": 115,
+            "numRadarPts": 2,
+            "projectedBox2d": {
+              "x": 161.88,
+              "y": 324.12,
+              "width": 253.9,
+              "height": 169.29
+            },
+            "derivedPlanarVelocityMps": 3.586,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         },
         {
-          "id": "TG-V12-184",
-          "trackId": "TRACK-V12",
-          "class": "car",
-          "attributes": ["moving"],
-          "box2d": {"x": 410, "y": 318, "width": 228, "height": 112},
-          "projection2d": {"x": 418, "y": 322, "width": 215, "height": 104},
-          "box3d": {"length": 4.38, "width": 1.82, "height": 1.56, "yaw": 0.03},
-          "lidarPoints": 142,
-          "velocityMps": 6.2,
-          "modelCandidate": {"class": "car", "score": 0.96, "box2d": {"x": 416, "y": 321, "width": 216, "height": 105}}
+          "id": "NS-CV-14",
+          "trackId": "NS-CV-e3c5b72c",
+          "class": "construction_vehicle",
+          "attributes": [
+            "vehicle.stopped"
+          ],
+          "candidate2d": {
+            "x": 315.69,
+            "y": 282.3,
+            "width": 252.95,
+            "height": 159.83
+          },
+          "candidateProjection2d": {
+            "x": 315.69,
+            "y": 282.3,
+            "width": 252.95,
+            "height": 159.83
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 568.64,
+              "y": 299.46
+            },
+            {
+              "x": 505.86,
+              "y": 284.25
+            },
+            {
+              "x": 499.44,
+              "y": 442.12
+            },
+            {
+              "x": 563,
+              "y": 436.31
+            },
+            {
+              "x": 404.17,
+              "y": 296.94
+            },
+            {
+              "x": 321.49,
+              "y": 282.3
+            },
+            {
+              "x": 315.69,
+              "y": 430.54
+            },
+            {
+              "x": 399.01,
+              "y": 426.5
+            }
+          ],
+          "candidate3d": {
+            "length": 0.8,
+            "width": 3.016,
+            "height": 2.916,
+            "yaw": 2.734634,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 84,
+          "radarPoints": 0,
+          "candidateVelocityMps": 0,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "construction_vehicle",
+            "score": 0.92,
+            "box2d": {
+              "x": 320.24,
+              "y": 284.22,
+              "width": 244.1,
+              "height": 155.83
+            }
+          },
+          "qaPerturbation": {
+            "id": "MUT-CV-14-LENGTH",
+            "synthetic": true,
+            "layer": "candidate_annotation",
+            "field": "candidate3d.length",
+            "operation": "replace_with_0.8m",
+            "baselineValue": 3.992,
+            "candidateValue": 0.8,
+            "purpose": "exercise_systematic_schema_export_cluster"
+          },
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "bc8a8cfdf2e94a87ac66b8cda48b3c28",
+            "instanceToken": "e3c5b72c12c34c85aac247734ad83bef",
+            "category": "vehicle.construction",
+            "attributeNames": [
+              "vehicle.stopped"
+            ],
+            "visibilityToken": "3",
+            "translationGlobal": [
+              398.565,
+              1110.043,
+              1.788
+            ],
+            "sizeWlh": [
+              3.016,
+              3.992,
+              2.916
+            ],
+            "rotationGlobalWxyz": [
+              0.2020779797531598,
+              0,
+              0,
+              0.9793694349421375
+            ],
+            "numLidarPts": 84,
+            "numRadarPts": 0,
+            "projectedBox2d": {
+              "x": 315.69,
+              "y": 282.3,
+              "width": 252.95,
+              "height": 159.83
+            },
+            "derivedPlanarVelocityMps": 0,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
+        },
+        {
+          "id": "NS-CW-14",
+          "trackId": "NS-CW-71603dd1",
+          "class": "construction_worker",
+          "attributes": [
+            "pedestrian.standing"
+          ],
+          "candidate2d": {
+            "x": 719.49,
+            "y": 336.35,
+            "width": 71.22,
+            "height": 142.58
+          },
+          "candidateProjection2d": {
+            "x": 719.49,
+            "y": 336.35,
+            "width": 71.22,
+            "height": 142.58
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 732.26,
+              "y": 339.78
+            },
+            {
+              "x": 790.71,
+              "y": 341.72
+            },
+            {
+              "x": 785.05,
+              "y": 473.63
+            },
+            {
+              "x": 726.71,
+              "y": 470.33
+            },
+            {
+              "x": 725.39,
+              "y": 336.35
+            },
+            {
+              "x": 787.6,
+              "y": 338.38
+            },
+            {
+              "x": 781.57,
+              "y": 478.93
+            },
+            {
+              "x": 719.49,
+              "y": 475.36
+            }
+          ],
+          "candidate3d": {
+            "length": 0.837,
+            "width": 0.775,
+            "height": 1.746,
+            "yaw": -1.848862,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 22,
+          "radarPoints": 0,
+          "candidateVelocityMps": 0.01,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "construction_worker",
+            "score": 0.92,
+            "box2d": {
+              "x": 720.77,
+              "y": 338.06,
+              "width": 68.73,
+              "height": 139.02
+            }
+          },
+          "qaPerturbation": null,
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "d75b0fa985bf4925845bf2be69698612",
+            "instanceToken": "71603dd1a2ba4e9daf095535e38310ac",
+            "category": "human.pedestrian.construction_worker",
+            "attributeNames": [
+              "pedestrian.standing"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              393.769,
+              1118.243,
+              1.278
+            ],
+            "sizeWlh": [
+              0.775,
+              0.837,
+              1.746
+            ],
+            "rotationGlobalWxyz": [
+              -0.6022888370159521,
+              0,
+              0,
+              0.7982782452290503
+            ],
+            "numLidarPts": 22,
+            "numRadarPts": 0,
+            "projectedBox2d": {
+              "x": 719.49,
+              "y": 336.35,
+              "width": 71.22,
+              "height": 142.58
+            },
+            "derivedPlanarVelocityMps": 0.01,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         }
       ]
     },
     {
-      "id": "FRAME-000185",
-      "timestampMs": 100,
-      "image": "/demo/frame-000185.svg",
-      "egoSpeedMps": 7.1,
+      "id": "NS-FRAME-15",
+      "timestampMs": 501,
+      "image": "/demo/nuscenes-scene-0061-cam-front-15.jpg",
+      "egoSpeedMps": 5.061,
+      "source": {
+        "dataset": "nuScenes v1.0-mini",
+        "sceneName": "scene-0061",
+        "sampleToken": "cd21dbfc3bd749c7b10a5c42562e0c42",
+        "sampleDataToken": "e0bc3ff06fe348fdb56039c640be0ac3",
+        "calibratedSensorToken": "1d31c729b073425e8e0202c5c6e66ee1",
+        "egoPoseToken": "e0bc3ff06fe348fdb56039c640be0ac3",
+        "channel": "CAM_FRONT",
+        "sourceFilename": "samples/CAM_FRONT/n015-2018-07-24-11-22-45+0800__CAM_FRONT__1532402935162463.jpg",
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "derivedMediaSha256": "sha256:7bff3967767f12902aa54c7097d4b83a848da3f73a250d5378773674e1adafb0",
+        "derivation": "RGB resize to 1280x720, Lanczos, progressive JPEG quality 86",
+        "egoSpeedMethod": "planar_difference_of_camera_timestamp_ego_poses"
+      },
       "targets": [
         {
-          "id": "TG-P07-185",
-          "trackId": "TRACK-P07",
-          "class": "pedestrian",
-          "attributes": ["moving", "partially_occluded"],
-          "box2d": {"x": 808, "y": 276, "width": 45, "height": 120},
-          "projection2d": {"x": 811, "y": 280, "width": 42, "height": 112},
-          "box3d": {"length": 0.71, "width": 0.61, "height": 1.72, "yaw": 1.52},
-          "lidarPoints": 17,
-          "velocityMps": 11.8,
-          "modelCandidate": {"class": "pedestrian", "score": 0.89, "box2d": {"x": 810, "y": 279, "width": 43, "height": 114}}
-        },
-        {
-          "id": "TG-V12-185",
-          "trackId": "TRACK-V12",
+          "id": "NS-CAR-15",
+          "trackId": "NS-CAR-c1958768",
           "class": "car",
-          "attributes": ["moving"],
-          "box2d": {"x": 448, "y": 315, "width": 230, "height": 113},
-          "projection2d": {"x": 495, "y": 332, "width": 150, "height": 72},
-          "box3d": {"length": 4.41, "width": 1.83, "height": 1.57, "yaw": 0.05},
-          "lidarPoints": 131,
-          "velocityMps": 6.4,
-          "modelCandidate": {"class": "car", "score": 0.93, "box2d": {"x": 493, "y": 330, "width": 154, "height": 76}}
+          "attributes": [
+            "vehicle.moving"
+          ],
+          "candidate2d": {
+            "x": 267.01,
+            "y": 315.93,
+            "width": 274.23,
+            "height": 181
+          },
+          "candidateProjection2d": {
+            "x": 137.01,
+            "y": 315.93,
+            "width": 274.23,
+            "height": 181
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 141.39,
+              "y": 325.06
+            },
+            {
+              "x": 275.06,
+              "y": 333.03
+            },
+            {
+              "x": 270.85,
+              "y": 458.36
+            },
+            {
+              "x": 137.01,
+              "y": 460.77
+            },
+            {
+              "x": 247.98,
+              "y": 315.93
+            },
+            {
+              "x": 411.24,
+              "y": 327.22
+            },
+            {
+              "x": 405.56,
+              "y": 490.19
+            },
+            {
+              "x": 241.96,
+              "y": 496.93
+            }
+          ],
+          "candidate3d": {
+            "length": 4.727,
+            "width": 1.907,
+            "height": 1.957,
+            "yaw": -0.893673,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 121,
+          "radarPoints": 3,
+          "candidateVelocityMps": 3.695,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "car",
+            "score": 0.92,
+            "box2d": {
+              "x": 141.95,
+              "y": 318.1,
+              "width": 264.63,
+              "height": 176.47
+            }
+          },
+          "qaPerturbation": {
+            "id": "MUT-CAR-15-BOX-SHIFT",
+            "synthetic": true,
+            "layer": "candidate_annotation",
+            "field": "candidate2d.x",
+            "operation": "add_130px_after_downsample",
+            "baselineValue": 137.01,
+            "candidateValue": 267.01,
+            "purpose": "exercise_projection_alignment_rule"
+          },
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "f0d891697c4e408bbe5037b94486a7be",
+            "instanceToken": "c1958768d48640948f6053d04cffd35b",
+            "category": "vehicle.car",
+            "attributeNames": [
+              "vehicle.moving"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              401.36,
+              1115.102,
+              1.088
+            ],
+            "sizeWlh": [
+              1.907,
+              4.727,
+              1.957
+            ],
+            "rotationGlobalWxyz": [
+              0.9018187001919756,
+              0,
+              0,
+              -0.43211460515013334
+            ],
+            "numLidarPts": 121,
+            "numRadarPts": 3,
+            "projectedBox2d": {
+              "x": 137.01,
+              "y": 315.93,
+              "width": 274.23,
+              "height": 181
+            },
+            "derivedPlanarVelocityMps": 3.695,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         },
         {
-          "id": "TG-C03-185",
-          "trackId": "TRACK-C03",
-          "class": "cyclist",
-          "attributes": ["moving"],
-          "box2d": {"x": 1008, "y": 298, "width": 68, "height": 128},
-          "projection2d": {"x": 1012, "y": 303, "width": 62, "height": 119},
-          "box3d": {"length": 1.78, "width": 0.64, "height": 1.67, "yaw": -1.36},
-          "lidarPoints": 2,
-          "velocityMps": 2.4,
-          "modelCandidate": {"class": "bicycle", "score": 0.62, "box2d": {"x": 1010, "y": 302, "width": 63, "height": 120}}
+          "id": "NS-CV-15",
+          "trackId": "NS-CV-e3c5b72c",
+          "class": "construction_vehicle",
+          "attributes": [
+            "vehicle.stopped"
+          ],
+          "candidate2d": {
+            "x": 376.27,
+            "y": 272.19,
+            "width": 280.82,
+            "height": 181.22
+          },
+          "candidateProjection2d": {
+            "x": 376.27,
+            "y": 272.19,
+            "width": 280.82,
+            "height": 181.22
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 657.09,
+              "y": 290.71
+            },
+            {
+              "x": 585.24,
+              "y": 272.19
+            },
+            {
+              "x": 578.62,
+              "y": 453.42
+            },
+            {
+              "x": 651.33,
+              "y": 445.5
+            },
+            {
+              "x": 475.9,
+              "y": 290.91
+            },
+            {
+              "x": 381.99,
+              "y": 274.03
+            },
+            {
+              "x": 376.27,
+              "y": 439.59
+            },
+            {
+              "x": 470.82,
+              "y": 434.13
+            }
+          ],
+          "candidate3d": {
+            "length": 0.8,
+            "width": 3.016,
+            "height": 2.916,
+            "yaw": 2.734634,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 101,
+          "radarPoints": 2,
+          "candidateVelocityMps": 0,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "construction_vehicle",
+            "score": 0.92,
+            "box2d": {
+              "x": 381.32,
+              "y": 274.36,
+              "width": 270.99,
+              "height": 176.69
+            }
+          },
+          "qaPerturbation": {
+            "id": "MUT-CV-15-LENGTH",
+            "synthetic": true,
+            "layer": "candidate_annotation",
+            "field": "candidate3d.length",
+            "operation": "replace_with_0.8m",
+            "baselineValue": 3.992,
+            "candidateValue": 0.8,
+            "purpose": "exercise_class_dimension_rule"
+          },
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "47b00780ace74436989b60161f3d5dab",
+            "instanceToken": "e3c5b72c12c34c85aac247734ad83bef",
+            "category": "vehicle.construction",
+            "attributeNames": [
+              "vehicle.stopped"
+            ],
+            "visibilityToken": "3",
+            "translationGlobal": [
+              398.565,
+              1110.043,
+              1.788
+            ],
+            "sizeWlh": [
+              3.016,
+              3.992,
+              2.916
+            ],
+            "rotationGlobalWxyz": [
+              0.2020779797531598,
+              0,
+              0,
+              0.9793694349421375
+            ],
+            "numLidarPts": 101,
+            "numRadarPts": 2,
+            "projectedBox2d": {
+              "x": 376.27,
+              "y": 272.19,
+              "width": 280.82,
+              "height": 181.22
+            },
+            "derivedPlanarVelocityMps": 0,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
+        },
+        {
+          "id": "NS-CW-15",
+          "trackId": "NS-CW-71603dd1",
+          "class": "construction_worker",
+          "attributes": [
+            "pedestrian.standing"
+          ],
+          "candidate2d": {
+            "x": 848.92,
+            "y": 325.08,
+            "width": 88.43,
+            "height": 181.98
+          },
+          "candidateProjection2d": {
+            "x": 848.92,
+            "y": 325.08,
+            "width": 88.43,
+            "height": 181.98
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 861.48,
+              "y": 330.2
+            },
+            {
+              "x": 936.9,
+              "y": 331.83
+            },
+            {
+              "x": 930.24,
+              "y": 498.44
+            },
+            {
+              "x": 855.07,
+              "y": 493.65
+            },
+            {
+              "x": 855.84,
+              "y": 325.08
+            },
+            {
+              "x": 937.36,
+              "y": 326.74
+            },
+            {
+              "x": 930.15,
+              "y": 507.06
+            },
+            {
+              "x": 848.92,
+              "y": 501.71
+            }
+          ],
+          "candidate3d": {
+            "length": 0.837,
+            "width": 0.775,
+            "height": 1.746,
+            "yaw": -1.848862,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 35,
+          "radarPoints": 0,
+          "candidateVelocityMps": 0.01,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "car",
+            "score": 0.61,
+            "box2d": {
+              "x": 850.51,
+              "y": 327.26,
+              "width": 85.33,
+              "height": 177.43
+            }
+          },
+          "qaPerturbation": {
+            "id": "MUT-CW-15-MOCK-CLASS",
+            "synthetic": true,
+            "layer": "mock_model_candidate",
+            "field": "modelCandidate.class",
+            "operation": "replace_with_car",
+            "baselineValue": "not_applicable_no_real_inference_run",
+            "candidateValue": "car",
+            "purpose": "exercise_model_disagreement_signal"
+          },
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "c18f0174cfde4218aee44a3efdd409b2",
+            "instanceToken": "71603dd1a2ba4e9daf095535e38310ac",
+            "category": "human.pedestrian.construction_worker",
+            "attributeNames": [
+              "pedestrian.standing"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              393.77,
+              1118.248,
+              1.278
+            ],
+            "sizeWlh": [
+              0.775,
+              0.837,
+              1.746
+            ],
+            "rotationGlobalWxyz": [
+              -0.6022888370159521,
+              0,
+              0,
+              0.7982782452290503
+            ],
+            "numLidarPts": 35,
+            "numRadarPts": 0,
+            "projectedBox2d": {
+              "x": 848.92,
+              "y": 325.08,
+              "width": 88.43,
+              "height": 181.98
+            },
+            "derivedPlanarVelocityMps": 0.01,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         }
       ]
     },
     {
-      "id": "FRAME-000186",
-      "timestampMs": 200,
-      "image": "/demo/frame-000186.svg",
-      "egoSpeedMps": 6.8,
+      "id": "NS-FRAME-16",
+      "timestampMs": 1001,
+      "image": "/demo/nuscenes-scene-0061-cam-front-16.jpg",
+      "egoSpeedMps": 4.977,
+      "source": {
+        "dataset": "nuScenes v1.0-mini",
+        "sceneName": "scene-0061",
+        "sampleToken": "88449a5cb1644a199c1c11f6ac034867",
+        "sampleDataToken": "0b2eb9c1cd1b45f0b1664a01684c5767",
+        "calibratedSensorToken": "1d31c729b073425e8e0202c5c6e66ee1",
+        "egoPoseToken": "0b2eb9c1cd1b45f0b1664a01684c5767",
+        "channel": "CAM_FRONT",
+        "sourceFilename": "samples/CAM_FRONT/n015-2018-07-24-11-22-45+0800__CAM_FRONT__1532402935662460.jpg",
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "derivedMediaSha256": "sha256:7a0be2bd27910a4f9fcc18373dd1ee182343cf2103d191dabe36ff2852552d90",
+        "derivation": "RGB resize to 1280x720, Lanczos, progressive JPEG quality 86",
+        "egoSpeedMethod": "planar_difference_of_camera_timestamp_ego_poses"
+      },
       "targets": [
         {
-          "id": "TG-V12-186",
-          "trackId": "TRACK-V12",
+          "id": "NS-CAR-16",
+          "trackId": "NS-CAR-c1958768",
           "class": "car",
-          "attributes": ["moving"],
-          "box2d": {"x": 472, "y": 312, "width": 232, "height": 115},
-          "projection2d": {"x": 478, "y": 316, "width": 220, "height": 106},
-          "box3d": {"length": 4.4, "width": 1.83, "height": 1.57, "yaw": 0.05},
-          "lidarPoints": 127,
-          "velocityMps": 6.5,
-          "modelCandidate": {"class": "car", "score": 0.95, "box2d": {"x": 476, "y": 315, "width": 221, "height": 108}}
+          "attributes": [
+            "vehicle.moving"
+          ],
+          "candidate2d": {
+            "x": 235.37,
+            "y": 310.18,
+            "width": 293.19,
+            "height": 191.79
+          },
+          "candidateProjection2d": {
+            "x": 115.37,
+            "y": 310.18,
+            "width": 293.19,
+            "height": 191.79
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 120.66,
+              "y": 320.88
+            },
+            {
+              "x": 261.02,
+              "y": 330.19
+            },
+            {
+              "x": 256.05,
+              "y": 460.88
+            },
+            {
+              "x": 115.37,
+              "y": 463.22
+            },
+            {
+              "x": 237.14,
+              "y": 310.18
+            },
+            {
+              "x": 408.56,
+              "y": 323.53
+            },
+            {
+              "x": 401.9,
+              "y": 494.74
+            },
+            {
+              "x": 229.88,
+              "y": 501.97
+            }
+          ],
+          "candidate3d": {
+            "length": 4.727,
+            "width": 1.907,
+            "height": 1.957,
+            "yaw": -0.777317,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 126,
+          "radarPoints": 2,
+          "candidateVelocityMps": 3.718,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "car",
+            "score": 0.92,
+            "box2d": {
+              "x": 120.65,
+              "y": 312.48,
+              "width": 282.93,
+              "height": 187
+            }
+          },
+          "qaPerturbation": {
+            "id": "MUT-CAR-16-BOX-SHIFT",
+            "synthetic": true,
+            "layer": "candidate_annotation",
+            "field": "candidate2d.x",
+            "operation": "add_120px_after_downsample",
+            "baselineValue": 115.37,
+            "candidateValue": 235.37,
+            "purpose": "exercise_systematic_projection_cluster"
+          },
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "b51c154d31f74655b9c680a9341041b2",
+            "instanceToken": "c1958768d48640948f6053d04cffd35b",
+            "category": "vehicle.car",
+            "attributeNames": [
+              "vehicle.moving"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              402.713,
+              1113.793,
+              1.138
+            ],
+            "sizeWlh": [
+              1.907,
+              4.727,
+              1.957
+            ],
+            "rotationGlobalWxyz": [
+              0.9254181954694122,
+              0,
+              0,
+              -0.3789474415986164
+            ],
+            "numLidarPts": 126,
+            "numRadarPts": 2,
+            "projectedBox2d": {
+              "x": 115.37,
+              "y": 310.18,
+              "width": 293.19,
+              "height": 191.79
+            },
+            "derivedPlanarVelocityMps": 3.718,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         },
         {
-          "id": "TG-C03-186",
-          "trackId": "TRACK-C03",
-          "class": "cyclist",
-          "attributes": ["moving", "truncated"],
-          "box2d": {"x": -14, "y": 294, "width": 86, "height": 138},
-          "projection2d": {"x": 0, "y": 300, "width": 66, "height": 126},
-          "box3d": {"length": 1.77, "width": 0.63, "height": 1.67, "yaw": -1.33},
-          "lidarPoints": 7,
-          "velocityMps": 2.6,
-          "modelCandidate": null
+          "id": "NS-CV-16",
+          "trackId": "NS-CV-e3c5b72c",
+          "class": "construction_vehicle",
+          "attributes": [
+            "vehicle.stopped"
+          ],
+          "candidate2d": {
+            "x": 450.77,
+            "y": 260.92,
+            "width": 319.75,
+            "height": 213.13
+          },
+          "candidateProjection2d": {
+            "x": 450.77,
+            "y": 260.92,
+            "width": 319.75,
+            "height": 213.13
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 770.52,
+              "y": 284.73
+            },
+            {
+              "x": 688.88,
+              "y": 260.92
+            },
+            {
+              "x": 680.21,
+              "y": 474.05
+            },
+            {
+              "x": 763.16,
+              "y": 463.54
+            },
+            {
+              "x": 564.77,
+              "y": 287.35
+            },
+            {
+              "x": 458.13,
+              "y": 266.84
+            },
+            {
+              "x": 450.77,
+              "y": 454.45
+            },
+            {
+              "x": 558.36,
+              "y": 447.84
+            }
+          ],
+          "candidate3d": {
+            "length": 3.992,
+            "width": 3.016,
+            "height": 2.916,
+            "yaw": 2.734634,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 120,
+          "radarPoints": 5,
+          "candidateVelocityMps": 0,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "construction_vehicle",
+            "score": 0.92,
+            "box2d": {
+              "x": 456.53,
+              "y": 263.48,
+              "width": 308.56,
+              "height": 207.8
+            }
+          },
+          "qaPerturbation": null,
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "bff968b87ac64f84947ef5d9c22d6439",
+            "instanceToken": "e3c5b72c12c34c85aac247734ad83bef",
+            "category": "vehicle.construction",
+            "attributeNames": [
+              "vehicle.stopped"
+            ],
+            "visibilityToken": "3",
+            "translationGlobal": [
+              398.565,
+              1110.043,
+              1.788
+            ],
+            "sizeWlh": [
+              3.016,
+              3.992,
+              2.916
+            ],
+            "rotationGlobalWxyz": [
+              0.2020779797531598,
+              0,
+              0,
+              0.9793694349421375
+            ],
+            "numLidarPts": 120,
+            "numRadarPts": 5,
+            "projectedBox2d": {
+              "x": 450.77,
+              "y": 260.92,
+              "width": 319.75,
+              "height": 213.13
+            },
+            "derivedPlanarVelocityMps": 0,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         },
         {
-          "id": "TG-CONE-186",
-          "trackId": "TRACK-CONE-01",
-          "class": "traffic_cone",
-          "attributes": ["static"],
-          "box2d": {"x": 930, "y": 372, "width": 30, "height": 47},
-          "projection2d": {"x": 933, "y": 374, "width": 26, "height": 42},
-          "box3d": {"length": 0.36, "width": 0.36, "height": 0.72, "yaw": 0},
-          "lidarPoints": 1,
-          "velocityMps": 0,
-          "modelCandidate": {"class": "traffic_cone", "score": 0.72, "box2d": {"x": 932, "y": 373, "width": 27, "height": 44}}
+          "id": "NS-CW-16",
+          "trackId": "NS-CW-71603dd1",
+          "class": "construction_worker",
+          "attributes": [
+            "pedestrian.standing"
+          ],
+          "candidate2d": {
+            "x": 1053.26,
+            "y": 313.94,
+            "width": 132.97,
+            "height": 253.38
+          },
+          "candidateProjection2d": {
+            "x": 1053.26,
+            "y": 313.94,
+            "width": 132.97,
+            "height": 253.38
+          },
+          "candidateProjectionCorners2d": [
+            {
+              "x": 1062.68,
+              "y": 322.51
+            },
+            {
+              "x": 1171.32,
+              "y": 324.05
+            },
+            {
+              "x": 1161.41,
+              "y": 550.77
+            },
+            {
+              "x": 1053.26,
+              "y": 541.5
+            },
+            {
+              "x": 1065.36,
+              "y": 313.94
+            },
+            {
+              "x": 1186.23,
+              "y": 315.31
+            },
+            {
+              "x": 1175.2,
+              "y": 567.32
+            },
+            {
+              "x": 1054.92,
+              "y": 556.44
+            }
+          ],
+          "candidate3d": {
+            "length": 0.837,
+            "width": 0.775,
+            "height": 1.746,
+            "yaw": -1.848862,
+            "yawReference": "global_frame_z_axis_radians"
+          },
+          "lidarPoints": 52,
+          "radarPoints": 2,
+          "candidateVelocityMps": 0.037,
+          "modelCandidate": {
+            "provenance": "deterministic_mock_not_model_inference",
+            "class": "construction_worker",
+            "score": 0.92,
+            "box2d": {
+              "x": 1055.65,
+              "y": 316.98,
+              "width": 128.32,
+              "height": 247.05
+            }
+          },
+          "qaPerturbation": null,
+          "demoReferenceAnnotation": {
+            "demoOnly": true,
+            "provenance": "official_nuscenes_human_3d_annotation",
+            "sampleAnnotationToken": "fae089936eea47c88860c54f5535c347",
+            "instanceToken": "71603dd1a2ba4e9daf095535e38310ac",
+            "category": "human.pedestrian.construction_worker",
+            "attributeNames": [
+              "pedestrian.standing"
+            ],
+            "visibilityToken": "4",
+            "translationGlobal": [
+              393.772,
+              1118.253,
+              1.278
+            ],
+            "sizeWlh": [
+              0.775,
+              0.837,
+              1.746
+            ],
+            "rotationGlobalWxyz": [
+              -0.6022888370159521,
+              0,
+              0,
+              0.7982782452290503
+            ],
+            "numLidarPts": 52,
+            "numRadarPts": 2,
+            "projectedBox2d": {
+              "x": 1053.26,
+              "y": 313.94,
+              "width": 132.97,
+              "height": 253.38
+            },
+            "derivedPlanarVelocityMps": 0.037,
+            "velocityMethod": "centered_annotation_translation_difference"
+          }
         }
       ]
     }
-  ]
+  ],
+  "qualityProfile": {
+    "id": "QPROF-SIM-SEED-3D",
+    "version": "1.0.0",
+    "intendedUses": [
+      "simulation_seed"
+    ],
+    "rules": {
+      "BOX_IN_FRAME": {
+        "specClauseId": "SPEC-GEOMETRY-001"
+      },
+      "CLASS_DIMENSIONS": {
+        "specClauseId": "SPEC-SCHEMA-003",
+        "byClass": {
+          "car": {
+            "length": [
+              2.4,
+              6.5
+            ],
+            "width": [
+              1.2,
+              2.8
+            ],
+            "height": [
+              1,
+              2.8
+            ]
+          },
+          "construction_vehicle": {
+            "length": [
+              2,
+              12
+            ],
+            "width": [
+              1.5,
+              4.5
+            ],
+            "height": [
+              1.5,
+              5
+            ]
+          },
+          "construction_worker": {
+            "length": [
+              0.2,
+              1.2
+            ],
+            "width": [
+              0.2,
+              1.2
+            ],
+            "height": [
+              1,
+              2.4
+            ]
+          }
+        }
+      },
+      "PROJECTION_ALIGNMENT": {
+        "specClauseId": "SPEC-PROJECTION-002",
+        "minIou": 0.55
+      },
+      "LIDAR_POINT_SUPPORT": {
+        "specClauseId": "SPEC-SENSOR-004",
+        "minimumByClass": {
+          "car": 8,
+          "construction_vehicle": 8,
+          "construction_worker": 4
+        }
+      },
+      "TRACK_ACCELERATION_CONTINUITY": {
+        "specClauseId": "SPEC-TRACK-005",
+        "maxAccelerationMps2": 15
+      },
+      "MODEL_CLASS_AGREEMENT": {
+        "specClauseId": "SPEC-MODEL-006",
+        "blocking": false,
+        "allowedByClass": {
+          "car": [
+            "car"
+          ],
+          "construction_vehicle": [
+            "construction_vehicle"
+          ],
+          "construction_worker": [
+            "construction_worker"
+          ]
+        }
+      }
+    }
+  },
+  "specClauses": [
+    {
+      "id": "SPEC-GEOMETRY-001",
+      "title": "候选 2D 几何边界"
+    },
+    {
+      "id": "SPEC-PROJECTION-002",
+      "title": "候选 3D 投影与候选 2D 关联"
+    },
+    {
+      "id": "SPEC-SCHEMA-003",
+      "title": "类别尺寸 Schema"
+    },
+    {
+      "id": "SPEC-SENSOR-004",
+      "title": "传感器支持只作为风险信号"
+    },
+    {
+      "id": "SPEC-TRACK-005",
+      "title": "Track 时序连续性"
+    },
+    {
+      "id": "SPEC-MODEL-006",
+      "title": "模型第二意见默认不阻断"
+    }
+  ],
+  "labelQAWorkOrder": {
+    "schemaVersion": "label-qa-work-order/1.0",
+    "provider": "LabelGuard",
+    "workOrderId": "LGWO-WZ-0061-001",
+    "supplyRequestId": "TASK-LG-WZ-001",
+    "demandRef": {
+      "id": "DEM-WZ-001",
+      "version": "1.0"
+    },
+    "datasetCandidateId": "NUSCENES-SCENE-0061-WORKZONE-SEED",
+    "snapshotDigest": "sha256:06ac8a2853582d2852dec3084eb01ad243af9af54d9dd52dc06dd8cbd006cb53",
+    "intendedUse": "simulation_seed",
+    "candidateLabelVersion": "labelguard-demo-0061-qa-rc1",
+    "annotationSchema": "labelguard-nuscenes-derived-v3",
+    "sensorProfile": "nuscenes_cam_front_v1",
+    "qualityProfileRef": {
+      "id": "QPROF-SIM-SEED-3D",
+      "version": "1.0.0"
+    },
+    "scope": {
+      "frameIds": [
+        "NS-FRAME-14",
+        "NS-FRAME-15",
+        "NS-FRAME-16"
+      ],
+      "targetIds": [
+        "NS-CAR-14",
+        "NS-CV-14",
+        "NS-CW-14",
+        "NS-CAR-15",
+        "NS-CV-15",
+        "NS-CW-15",
+        "NS-CAR-16",
+        "NS-CV-16",
+        "NS-CW-16"
+      ]
+    },
+    "requester": {
+      "team": "PNC",
+      "role": "data_consumer"
+    },
+    "qaOwner": {
+      "team": "Data QA",
+      "role": "qa_owner"
+    },
+    "approver": {
+      "team": "Data QA",
+      "role": "quality_approver"
+    },
+    "slaDueAt": "2026-07-16T09:00:00.000Z",
+    "licenseRef": "public/demo/LICENSE"
+  },
+  "dataSupplyTask": {
+    "schemaVersion": "data-supply-task/1.0",
+    "taskId": "TASK-LG-WZ-001",
+    "demandRef": {
+      "id": "DEM-WZ-001",
+      "version": "1.0"
+    },
+    "routeDecision": {
+      "id": "ROUTE-DATA-QA",
+      "type": "DATA_QA",
+      "reasonCode": "DATASET_REQUIRES_QA",
+      "approvedByRole": "data_product_owner",
+      "approvedAt": "2026-07-15T11:00:00+08:00"
+    },
+    "consumer": {
+      "team": "PNC 算法",
+      "function": "work_zone_merge",
+      "modelVersion": "pnc-2026.07.1",
+      "purpose": "regression"
+    },
+    "inputAssetRefs": [
+      {
+        "id": "NUSCENES-SCENE-0061-WORKZONE-SEED",
+        "version": "labelguard-demo-0061-qa-rc1",
+        "uri": "labelguard-demo://scene-0061/frames-14-16",
+        "snapshotDigest": "sha256:06ac8a2853582d2852dec3084eb01ad243af9af54d9dd52dc06dd8cbd006cb53"
+      }
+    ],
+    "seedRefs": [
+      {
+        "kind": "nuscenes_scene",
+        "uri": "nuscenes://v1.0-mini/scene-0061",
+        "digest": "sha256:06ac8a2853582d2852dec3084eb01ad243af9af54d9dd52dc06dd8cbd006cb53",
+        "licenseRef": "CC-BY-NC-SA-4.0+nuScenes-Terms",
+        "sampleTokens": [
+          "2afb9d32310e4546a71cbe432911eca2",
+          "cd21dbfc3bd749c7b10a5c42562e0c42",
+          "88449a5cb1644a199c1c11f6ac034867"
+        ]
+      }
+    ],
+    "atomicPredicates": [
+      {
+        "id": "P-SEED-QUALITY",
+        "definitionId": "P-SEED-QUALITY",
+        "category": "DATA_READINESS",
+        "executorId": "labelguard.quality-gate/1.0",
+        "requiredModalities": [
+          "camera",
+          "calibration",
+          "ego_pose",
+          "sample_annotation"
+        ],
+        "evidenceMaturity": "REQUIRES_QA",
+        "missingDataBehavior": "BLOCK_SIMULATION_SEED",
+        "version": "1.0"
+      }
+    ],
+    "acceptanceCriteria": [
+      {
+        "id": "AC-QA-01",
+        "metric": "mandatory_blockers",
+        "operator": "eq",
+        "value": 0,
+        "unit": "issues",
+        "source": "quality-profile/1.0",
+        "approvedBy": "qa_owner"
+      },
+      {
+        "id": "AC-QA-02",
+        "metric": "review_completion",
+        "operator": "eq",
+        "value": 9,
+        "unit": "targets",
+        "source": "work-order-scope",
+        "approvedBy": "qa_owner"
+      }
+    ],
+    "budget": {
+      "maxTargets": 9,
+      "maxWallTimeMinutes": 30,
+      "reviewPolicy": "exhaustive_demo_batch"
+    },
+    "returnRef": {
+      "schemaVersion": "data-supply-result/1.0",
+      "target": "sceneql://demands/DEM-WZ-001/results"
+    },
+    "providerSpec": {
+      "schemaVersion": "label-qa-work-order/1.0",
+      "provider": "LabelGuard",
+      "workOrderId": "LGWO-WZ-0061-001",
+      "supplyRequestId": "TASK-LG-WZ-001",
+      "demandRef": {
+        "id": "DEM-WZ-001",
+        "version": "1.0"
+      },
+      "datasetCandidateId": "NUSCENES-SCENE-0061-WORKZONE-SEED",
+      "snapshotDigest": "sha256:06ac8a2853582d2852dec3084eb01ad243af9af54d9dd52dc06dd8cbd006cb53",
+      "intendedUse": "simulation_seed",
+      "candidateLabelVersion": "labelguard-demo-0061-qa-rc1",
+      "annotationSchema": "labelguard-nuscenes-derived-v3",
+      "sensorProfile": "nuscenes_cam_front_v1",
+      "qualityProfileRef": {
+        "id": "QPROF-SIM-SEED-3D",
+        "version": "1.0.0"
+      },
+      "scope": {
+        "frameIds": [
+          "NS-FRAME-14",
+          "NS-FRAME-15",
+          "NS-FRAME-16"
+        ],
+        "targetIds": [
+          "NS-CAR-14",
+          "NS-CV-14",
+          "NS-CW-14",
+          "NS-CAR-15",
+          "NS-CV-15",
+          "NS-CW-15",
+          "NS-CAR-16",
+          "NS-CV-16",
+          "NS-CW-16"
+        ]
+      },
+      "requester": {
+        "team": "PNC",
+        "role": "data_consumer"
+      },
+      "qaOwner": {
+        "team": "Data QA",
+        "role": "qa_owner"
+      },
+      "approver": {
+        "team": "Data QA",
+        "role": "quality_approver"
+      },
+      "slaDueAt": "2026-07-16T09:00:00.000Z",
+      "licenseRef": "public/demo/LICENSE"
+    }
+  },
+  "demoRecheck": {
+    "synthetic": true,
+    "notice": "One-click recheck is a deterministic synthetic demo receipt, not a corrected nuScenes release.",
+    "snapshotDigest": "sha256:c05f77ead1ca4108afc03e9598d0ac12d889517dbfb2cdfb8e77b34b70080878"
+  }
 }

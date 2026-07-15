@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getAiConfig, loadEnvironment } from "./env.mjs";
-import { runAssistant } from "./ai.mjs";
+import { runClusterAssistant } from "./ai.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, "..");
@@ -13,9 +13,12 @@ loadEnvironment({ projectRoot });
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
   ".svg": "image/svg+xml",
 };
 
@@ -92,16 +95,20 @@ async function handler(request, response) {
         sendJson(response, 400, { error: "INVALID_JSON" });
         return;
       }
-      const target = body?.target;
-      if (!target?.id || !Array.isArray(target.evidence)) {
-        sendJson(response, 422, { error: "INVALID_TARGET_EVIDENCE" });
+      const context = body?.context;
+      if (
+        !context?.cluster?.id ||
+        !Array.isArray(context.evidence) ||
+        !Array.isArray(context.specClauses)
+      ) {
+        sendJson(response, 422, { error: "INVALID_ISSUE_CLUSTER_CONTEXT" });
         return;
       }
       if (config.requestedMode === "remote" && !config.remoteReady) {
         sendJson(response, 503, { error: "REMOTE_ASSISTANT_NOT_CONFIGURED" });
         return;
       }
-      const result = await runAssistant(target, config);
+      const result = await runClusterAssistant(context, config);
       sendJson(response, 200, result);
     } catch (error) {
       sendJson(response, 502, {

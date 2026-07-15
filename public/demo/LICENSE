@@ -1,12 +1,21 @@
-CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
+nuScenes-derived demo asset notice
 
-The LabelGuard demo batch, its JSON fixture, and its SVG frame assets in this
-directory are dedicated to the public domain under CC0 1.0 Universal.
+The three JPEG frames and the fields derived from nuScenes metadata in this
+directory come from nuScenes v1.0-mini. Unless specifically labelled otherwise,
+nuScenes data is provided under Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International (CC BY-NC-SA 4.0) together with the additional
+nuScenes Dataset Terms.
 
-To the extent possible under law, the contributors have waived all copyright
-and related or neighboring rights to these demo assets. The dedication is made
-without warranties and does not affect patent or trademark rights, or rights
-that other persons may have in the work or in how the work is used.
+Official terms: https://www.nuscenes.org/terms-of-use
+CC BY-NC-SA 4.0: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
-SPDX-License-Identifier: CC0-1.0
-Canonical legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Attribution: nuScenes, developed by Motional (formerly nuTonomy). See the
+dataset citation in README.md.
+
+The LabelGuard-authored controlled-mutation configuration and deterministic
+Mock values are clearly marked in labelguard-batch-v1.json. Those additions do
+not change the license obligations that apply to the combined derived fixture.
+
+This public demo is for non-commercial product demonstration and education. It
+does not grant a commercial nuScenes license. Commercial users must contact the
+dataset owner as described in the official terms.
